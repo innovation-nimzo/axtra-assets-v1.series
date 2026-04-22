@@ -1,0 +1,3485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axtra Studio | 1.12.042</v></title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0b0e11;
+            --panel: rgba(255, 255, 255, 0.03);
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+            --text: #f8fafc;
+            --text-dim: #64748b;
+            --sidebar-width: 280px;
+            --sidebar-collapsed: 80px;
+            --transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .light-mode {
+            --bg: #f8fafc;
+            --panel: rgba(0, 0, 0, 0.03);
+            --text: #0f172a;
+            --text-dim: #475569;
+            --accent: #2563eb;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            height: 100vh; 
+            overflow: hidden; 
+            transition: background 0.5s ease;
+        }
+
+        h1, h2, h3, h4, h5, h6 { color: var(--text); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes vibePulse { 0% { height: 4px; } 50% { height: 22px; } 100% { height: 8px; } }
+        @keyframes glow { 0% { box-shadow: 0 0 5px var(--accent-glow); } 50% { box-shadow: 0 0 20px var(--accent-glow); } 100% { box-shadow: 0 0 5px var(--accent-glow); } }
+        @keyframes scrollText { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
+
+        /* NEW STYLES */
+        .marquee-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--accent);
+            color: white;
+            padding: 10px 20px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            overflow: hidden;
+            white-space: nowrap;
+            border-radius: 20px;
+            min-height: 44px;
+        }
+        .marquee-text {
+            display: inline-block;
+            animation: scrollText 12s linear infinite;
+        }
+        .search-button {
+            background: rgba(255,255,255,0.12);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 999px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+        .search-button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .search-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.9);
+            z-index: 4000;
+            padding: 20px;
+        }
+        .search-card {
+            width: 100%;
+            max-width: 720px;
+            background: var(--panel);
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 30px;
+        }
+        .search-result {
+            padding: 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .search-result:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        .search-area { padding: 20px 20px 0 20px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; display: flex; gap: 10px;}
+        .search-bar { 
+            flex: 1; padding: 15px 20px; background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 25px; color: var(--text); 
+            font-size: 16px; transition: 0.3s;
+        }
+        .search-bar:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .sys-info-trigger {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 40px;
+            height: 40px;
+            background: var(--panel);
+            border: 1px solid var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 4000;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #10b981;
+        }
+        .info-pop {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            width: 250px;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .bug-report {
+            padding: 15px 30px;
+            font-size: 11px;
+            opacity: 0.5;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text);
+            display: block;
+        }
+        .bug-report:hover { opacity: 1; color: var(--accent); }
+
+        .app-shell { display: flex; height: 100vh; padding: 20px; gap: 20px; }
+
+        #sidebar {
+            width: var(--sidebar-width);
+            background: var(--panel);
+            backdrop-filter: blur(30px);
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+
+        #sidebar.collapsed { width: var(--sidebar-collapsed); }
+        #sidebar.collapsed .nav-text, #sidebar.collapsed .section-label, #sidebar.collapsed .logo-text, #sidebar.collapsed .user-meta, #sidebar.collapsed #createArea, #sidebar.collapsed #commonAlbums, #sidebar.collapsed #cloudPlaylists, #sidebar.collapsed #supportSection, #sidebar.collapsed .sidebar-header > div:last-child { display: none; }
+
+        .sidebar-header { padding: 35px 25px; display: flex; align-items: center; gap: 15px; }
+        .logo-text { font-family: 'Syncopate'; font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: -1px; }
+
+        .nav-item { 
+            display: flex; align-items: center; padding: 12px 20px; margin: 4px 15px; 
+            border-radius: 16px; cursor: pointer; transition: 0.3s; color: var(--text-dim);
+        }
+        .nav-item:hover, .nav-item.active { background: var(--panel); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+        
+        main { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+        .glass-card { 
+            background: var(--panel); backdrop-filter: blur(30px); border-radius: 30px; 
+            border: 1px solid rgba(255,255,255,0.08); animation: fadeIn 0.6s ease-out;
+            overflow: hidden;
+        }
+
+        .spotlight { 
+            height: 220px; position: relative; display: flex; align-items: flex-end; 
+            padding: 40px; 
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.4) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0.8) 100%), url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200&h=400&fit=crop');
+            background-size: cover; background-position: center;
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.1);
+            overflow: hidden;
+        }
+        .background-labels {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .spotlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .spotlight:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 50px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+        .spotlight-content h1 { font-family: 'Syncopate'; font-size: 32px; margin-bottom: 5px; }
+        .spotlight-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .search-area { padding: 20px 20px 0 20px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; display: flex; gap: 10px;}
+        .search-bar { 
+            flex: 1; padding: 15px 20px; background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 25px; color: var(--text); 
+            font-size: 16px; transition: 0.3s;
+        }
+        .search-bar:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+        .song-row { 
+            display: flex; align-items: center; padding: 12px 20px; border-radius: 20px; 
+            margin-bottom: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent;
+        }
+        .song-row:hover { background: rgba(255,255,255,0.05); transform: translateX(5px); }
+        .song-row.active { background: var(--accent-glow); border-color: var(--accent); }
+
+        .full-modal { 
+            position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
+            display: none; flex-direction: column; padding: 60px; overflow-y: auto;
+        }
+        .close-modal { position: absolute; top: 40px; right: 40px; font-size: 30px; cursor: pointer; }
+
+        .player-bar { 
+            padding: 20px 40px; 
+            display: grid; 
+            grid-template-columns: 1fr 2fr 1fr auto; 
+            align-items: center; 
+            height: 110px; 
+            position: relative;
+            overflow: visible;
+        }
+        .player-expanded {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background: var(--panel);
+            backdrop-filter: blur(30px);
+            border-radius: 30px 0 0 30px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-right: none;
+            padding: 20px;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            z-index: 10;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+        }
+        .player-expanded.expanded {
+            transform: translateX(0);
+        }
+        .expand-toggle {
+            width: 50px;
+            height: 50px;
+            background: var(--panel);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 18px;
+        }
+        .expand-toggle:hover {
+            background: var(--accent);
+            color: white;
+        }
+        .track-codes {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .user-content-section { flex: 1; display: flex; flex-direction: column; }
+        .content-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 0 20px;
+        }
+        .tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: 0.3s;
+            font-weight: 600;
+        }
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+        .tab:hover { opacity: 0.8; }
+        .search-button {
+            margin-left: auto;
+        }
+        .tab-content {
+            flex: 1;
+            display: none;
+            overflow-y: auto;
+        }
+        .tab-content.active { display: block; }
+
+        .notice-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .notice-item h4 {
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+        .notice-item .date {
+            font-size: 12px;
+            opacity: 0.6;
+            margin-bottom: 10px;
+        }
+        .play-btn { 
+            width: 60px; height: 60px; border-radius: 50%; background: var(--text); 
+            color: var(--bg); display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.3s; font-size: 22px;
+        }
+        .play-btn:hover { transform: scale(1.1); background: var(--accent); color: white; }
+
+        .bot-window { 
+            position: fixed; bottom: 120px; right: 30px; width: 350px; height: 450px; 
+            background: #0f172a; border-radius: 24px; border: 1px solid var(--accent);
+            display: none; flex-direction: column; z-index: 3000; box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+        }
+        .bot-fab { 
+            position: fixed; bottom: 40px; right: 40px; width: 65px; height: 65px; 
+            border-radius: 50%; background: var(--accent); color: white; border: none;
+            cursor: pointer; z-index: 3001; font-weight: 800; animation: glow 3s infinite;
+        }
+
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px; }
+        .team-card { background: var(--panel); padding: 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); text-align: center; }
+        .like-btn:hover { transform: scale(1.3); color: #ff4757; }
+        
+        .reset-btn {
+            background: var(--accent); color: white; border: none; padding: 0 20px; border-radius: 25px; cursor: pointer; display: none;
+        }
+
+        .playlist-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .playlist-card:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+        .playlist-card img {
+            width: 100%;
+            height: 160px;
+            border-radius: 15px;
+            object-fit: cover;
+            margin-bottom: 12px;
+        }
+        .playlist-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: var(--text);
+        }
+        .playlist-card p {
+            margin: 0;
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        .noticeboard-shell {
+            padding: 24px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+            gap: 24px;
+            align-items: start;
+        }
+        .noticeboard-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 28px;
+            padding: 28px;
+            background:
+                radial-gradient(circle at top right, rgba(59,130,246,0.28), transparent 35%),
+                linear-gradient(145deg, rgba(15,23,42,0.95), rgba(15,23,42,0.65));
+            border: 1px solid rgba(255,255,255,0.08);
+            min-height: 210px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .noticeboard-badge,
+        .notice-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            width: fit-content;
+        }
+        .notice-pill {
+            padding: 6px 10px;
+            background: rgba(59,130,246,0.15);
+            color: #bfdbfe;
+        }
+        .noticeboard-hero h3 {
+            font-size: 34px;
+            line-height: 1.05;
+            margin: 18px 0 10px;
+            max-width: 420px;
+        }
+        .noticeboard-hero p {
+            opacity: 0.8;
+            max-width: 440px;
+            line-height: 1.6;
+        }
+        .notice-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .notice-stat {
+            min-width: 130px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .notice-stat strong {
+            display: block;
+            font-size: 24px;
+            margin-bottom: 3px;
+        }
+        .notice-stat span {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        .notice-feed,
+        .notice-composer,
+        .manager-panel {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 26px;
+            padding: 22px;
+        }
+        .notice-feed {
+            max-height: 620px;
+            overflow-y: auto;
+        }
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .panel-header p {
+            opacity: 0.65;
+            font-size: 13px;
+        }
+        .notice-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .notice-date {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+        .notice-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .action-btn,
+        .primary-btn,
+        .secondary-btn,
+        .ghost-btn {
+            border: none;
+            border-radius: 16px;
+            padding: 12px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.25s ease;
+            font-family: inherit;
+        }
+        .primary-btn {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 12px 24px rgba(59,130,246,0.25);
+        }
+        .secondary-btn {
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .ghost-btn {
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px dashed rgba(255,255,255,0.12);
+        }
+        .action-btn {
+            padding: 9px 12px;
+            font-size: 12px;
+        }
+        .danger-btn {
+            background: rgba(255,71,87,0.15);
+            color: #ff9aa5;
+            border: 1px solid rgba(255,71,87,0.25);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .field-group.full {
+            grid-column: 1 / -1;
+        }
+        .field-group label {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+        .composer-input {
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            color: var(--text);
+            padding: 14px 16px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: 0.25s ease;
+        }
+        .composer-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        textarea.composer-input {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .admin-only-note {
+            margin-top: 14px;
+            font-size: 12px;
+            opacity: 0.6;
+            text-align: center;
+        }
+        .empty-state {
+            min-height: 220px;
+            border-radius: 24px;
+            border: 1px dashed rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px;
+            opacity: 0.7;
+            line-height: 1.6;
+        }
+        .manager-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+            gap: 24px;
+            margin-top: 30px;
+        }
+        .manager-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 520px;
+            overflow-y: auto;
+        }
+        .manager-track {
+            display: grid;
+            grid-template-columns: 56px minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .manager-track img,
+        .library-track img {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            object-fit: cover;
+            background: rgba(255,255,255,0.06);
+        }
+        .manager-track h4 {
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+        .manager-track p {
+            font-size: 12px;
+            opacity: 0.66;
+        }
+        .song-picker {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .library-results {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .library-track {
+            display: grid;
+            grid-template-columns: 50px minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .library-track img {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+        }
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+        }
+        @media (max-width: 1100px) {
+            .noticeboard-shell,
+            .manager-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .noticeboard-shell {
+                padding: 16px;
+            }
+            .noticeboard-hero h3 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body id="body">
+
+<div class="sys-info-trigger" onclick="toggleInfo()">
+    <div class="status-dot"></div>
+    <div class="info-pop" id="infoPop">
+        <h4 style="color:var(--accent); margin-bottom:10px;">CORE SYSTEM STATUS</h4>
+        <p style="font-size:12px; margin-bottom:5px;">Version: 1.12.042</p>
+        <p style="font-size:12px; margin-bottom:5px;">Auth: <span style="color:#10b981">CONNECTED</span></p>
+        <p style="font-size:12px; margin-bottom:5px;">Firestore: <span style="color:#10b981">STABLE</span></p>
+        <p style="font-size:12px; margin-bottom:5px;">AI Uplink: <span style="color:#10b981">ACTIVE</span></p>
+        <hr style="opacity:0.1; margin:10px 0;">
+        <p style="font-size:10px; opacity:0.5;">Console Status: No Errors Detected</p>
+    </div>
+</div>
+
+<div id="aboutModal" class="full-modal">
+    <span class="close-modal" onclick="closeModals()">✕</span>
+    <h1 style="font-family:'Syncopate'; font-size: 50px; color: var(--accent);">ABOUT AXTRA</h1>
+    <div style="max-width: 800px; margin-top: 40px;"><!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        
+    </body>
+    </html>
+        <p style="font-size: 20px; line-height: 1.6; opacity: 0.8;">We're here to revolutionise music, Listen to music at free of cost, Only with Axtra Music</p>
+    </div>
+</div>
+
+<div id="devModal" class="full-modal">
+    <span class="close-modal" onclick="closeModals()">✕</span>
+    <h1 style="font-family:'Syncopate'; font-size: 50px; color: var(--accent);">DEVELOPMENT TEAM</h1>
+    <div class="team-grid">
+        <div class="team-card">
+            <h3>Satyam </h3>
+            <p>Lead Architect & Developer</p>
+            <p style="font-size: 12px; opacity: 0.7;">"This project has been my first goal since 4 years, Now it's only halfway there!, More surpising updates comin' soon!!" </p>
+        </div>
+        <div class="team-card">
+            <h3>CodeLogic Developers</h3>
+            <p>Official Developing Partner</p>
+            <p style="font-size: 12px; opacity: 0.7;">Gathering coding volunteers for the project...Determined to do the best #DoBest</p>
+        </div>
+        <div class="team-card">
+            <h3>Team Innovation</h3>
+            <p>Feature Updates & Execution</p>
+            <p style="font-size: 12px; opacity: 0.7;">They hold credit for live noticeboard, axticket systems and you know the list is endlesss........</p>
+        </div>
+    </div>
+    <div style="margin-top: 40px; text-align: center;">
+        <h3 style="color: var(--accent);">VERSION INFO</h3>
+        <p style="font-size: 18px; margin: 10px 0;">Axtra Music v1.12.042</p>
+        <p style="font-size: 14px; opacity: 0.7;">Released: 22nd April 2026</p>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px;">
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+                <h4 style="color: var(--accent);">What's New</h4>
+                <ul style="text-align: left; font-size: 12px; opacity: 0.8;">
+                    <li>• Expandable music player</li>
+                    <li>• Track codes display</li>
+                    <li>• Admin album management</li>
+                    <li>• Enhanced playlists</li>
+                </ul>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+                <h4 style="color: var(--accent);">Features</h4>
+                <ul style="text-align: left; font-size: 12px; opacity: 0.8;">
+                    <li>• AI-powered recommendations</li>
+                    <li>• Cross-platform sync</li>
+                    <li>• Offline playback</li>
+                    <li>• Social sharing</li>
+                    <li>• Custom playlists</li>
+                    <li>• Ad free listening & instant help</li>
+                </ul>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+                <h4 style="color: var(--accent);">Coming Soon</h4>
+                <ul style="text-align: left; font-size: 12px; opacity: 0.8;">
+                    <li>• QR code sharing (Developing)</li>
+                    <li>• Advanced analytics</li>
+                    <li>• Collaborative playlists</li>
+                    <li>• Live streaming</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ticketChatModal" class="full-modal">
+    <span class="close-modal" onclick="closeModals()">✕</span>
+    <div style="max-width: 500px; margin-top: 40px;">
+        <h1 style="font-family:'Syncopate'; font-size: 40px; color: var(--accent); text-align: center; margin-bottom: 20px;">AXTICKET INTERFACE</h1>
+
+        <div id="ticketSelector" style="margin-bottom: 20px;">
+            <select id="activeTicket" class="search-bar" onchange="loadTicketChat()">
+                <option value="">Select a ticket...</option>
+            </select>
+            <button onclick="window.open('ticket.html', '_blank')" class="nav-item" style="background: var(--accent); color: white; margin: 10px 0; width: 100%;">Create New Ticket</button>
+        </div>
+
+        <div id="chatContainer" style="display: none;">
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 12px; opacity: 0.7; margin-bottom: 5px;">AxTicket<span id="chatTicketNumber"></span></div>
+                <div style="font-weight: 600; margin-bottom: 5px;" id="chatSubject"></div>
+                <div style="font-size: 14px; opacity: 0.8;" id="chatStatus"></div>
+            </div>
+
+            <div id="chatMessages" style="height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 15px; margin-bottom: 15px;"></div>
+
+            <div id="messageInput" style="display: flex; gap: 10px;">
+                <input type="text" id="newMessage" class="search-bar" placeholder="Describe your issue clearly.." style="flex: 1;" onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()" class="nav-item" style="background: var(--accent); color: white; padding: 10px 15px;">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="qrModal" class="full-modal">
+    <span class="close-modal" onclick="closeModals()">✕</span>
+    <h1 style="font-family:'Syncopate'; font-size: 50px; color: var(--accent);">SHARE AXPLAYLIST NOW!!</h1>
+    <div style="max-width: 600px; margin-top: 40px; text-align: center;">
+        <h3 id="qrPlaylistName"></h3>
+        <div style="display: flex; justify-content: space-between; margin: 20px 0; opacity: 0.8;">
+            <span id="qrSongCount"></span>
+            <span id="qrDuration"></span>
+        </div>
+        <p id="qrCreator" style="opacity: 0.7; margin-bottom: 20px;"></p>
+
+        <div style="position: relative; display: inline-block; margin-bottom: 30px;">
+            <div id="qrcode" style="display: inline-block; background: white; padding: 20px; border-radius: 15px;"></div>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'Syncopate'; font-size: 12px; color: #000; font-weight: bold; text-shadow: 1px 1px 2px rgba(255,255,255,0.8);">
+                A-M-26
+            </div>
+        </div>
+
+        <p style="font-size: 12px; opacity: 0.6; margin: 20px 0;">Scan QR to access this playlist-Under Development. Out in version 1.12.056</p>
+        
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; text-align: left; font-size: 12px; opacity: 0.7; margin-bottom: 8px;">📎 Share AXPLAY Link:</label>
+            <div style="display: flex; gap: 10px;">
+                <input id="playlistShareUrl" type="text" readonly class="search-bar" style="flex: 1; padding: 12px; font-size: 12px;">
+                <button onclick="copyShareLink()" class="nav-item" style="background: var(--accent); color: white; padding: 12px 15px;">Copy</button>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button onclick="downloadQR()" class="nav-item" style="background: var(--accent); color: white; flex: 1;">⬇️ Download QR</button>
+            <button onclick="closeModals()" class="nav-item" style="background: rgba(255,255,255,0.1); color: var(--text); flex: 1;">Close</button>
+        </div>
+    </div>
+</div>
+
+<div id="searchModal" class="search-modal">
+    <div class="search-card">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:20px;">
+            <div>
+                <h2 style="margin:0;">Search Tracks</h2>
+                <p style="margin:5px 0 0 0; opacity:0.7;">Search across AXMUSIC DATABASE</p>
+            </div>
+            <span class="close-modal" onclick="closeSearchPopup()">✕</span>
+        </div>
+        <input id="searchInputModal" type="text" class="search-bar" placeholder="Search by title or artist..." oninput="searchTracks()">
+        <div id="searchResults" style="margin-top:20px; max-height: 420px; overflow-y:auto;"></div>
+    </div>
+</div>
+
+<div id="authModal" class="full-modal">
+    <span class="close-modal" onclick="closeAuthModal()">✕</span>
+    <div style="max-width: 540px; width: 100%; margin-top: 40px;">
+        <div style="background: linear-gradient(135deg, rgba(59,130,246,0.16), rgba(16,185,129,0.12)); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 28px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:20px;">
+                <div>
+                    <div style="font-size:12px; letter-spacing:2px; text-transform:uppercase; color: var(--accent); font-weight:700;">Axtra Access</div>
+                    <h2 style="margin:8px 0 6px; font-family:'Syncopate'; font-size: 28px; color: var(--text);">AXTRA ID</h2>
+                    <p style="margin:0; color: var(--text-dim); line-height:1.6;">Create or sign into a permanent Axtra account with your own ID and password.</p>
+                </div>
+                <div style="padding:10px 12px; border-radius:16px; background: rgba(255,255,255,0.06); font-size:12px; color: var(--text-dim);">Playlists + likes stay linked to your Axtra ID</div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap;">
+                <button id="authTabRegister" class="primary-btn" type="button" onclick="switchAuthMode('register')" style="flex:1; min-width:160px;">Create Axtra ID</button>
+                <button id="authTabLogin" class="ghost-btn" type="button" onclick="switchAuthMode('login')" style="flex:1; min-width:160px;">Login With Axtra ID</button>
+            </div>
+
+            <form id="axtraAuthForm" onsubmit="submitAxtraAuth(event)">
+                <div id="axtraRegisterNameGroup" class="field-group full" style="margin-bottom:14px;">
+                    <label for="axtraNameInput">Display Name</label>
+                    <input id="axtraNameInput" class="composer-input" type="text" placeholder="Your Axtra name">
+                </div>
+                <div class="field-group full" style="margin-bottom:14px;">
+                    <label for="axtraIdInput">Axtra ID</label>
+                    <input id="axtraIdInput" class="composer-input" type="text" placeholder="example: axtrafan21">
+                </div>
+                <div class="field-group full" style="margin-bottom:8px;">
+                    <label for="axtraPasswordInput">Password</label>
+                    <input id="axtraPasswordInput" class="composer-input" type="password" placeholder="Minimum 6 characters">
+                </div>
+                <p id="axtraAuthHint" style="font-size:12px; color: var(--text-dim); margin: 0 0 18px 0;">Use a memorable ID. It stays permanent in Axtra database.</p>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <button id="axtraAuthSubmit" class="primary-btn" type="submit" style="flex:1;">Create Account</button>
+                    <button class="secondary-btn" type="button" onclick="closeAuthModal()" style="flex:1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="termsModal" class="full-modal">
+    <div style="max-width: 680px; width: 100%; margin-top: 30px;">
+        <div style="background: rgba(15,23,42,0.96); border: 1px solid rgba(255,255,255,0.08); border-radius: 26px; padding: 30px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px;">
+                <div>
+                    <div style="font-size:12px; letter-spacing:2px; text-transform:uppercase; color: var(--accent); font-weight:700;">Axtra Terms</div>
+                    <h2 style="margin:8px 0 6px; font-family:'Syncopate'; font-size: 28px;">Before You Continue</h2>
+                </div>
+                <div id="termsAccountBadge" style="padding:10px 12px; border-radius:16px; background: rgba(255,255,255,0.06); font-size:12px; color: var(--text-dim);">Account setup</div>
+            </div>
+            <div style="display:grid; gap:12px; margin-bottom:20px;">
+                <div class="notice-item" style="margin:0;">
+                    <h4>1. Respect account security</h4>
+                    <p>Keep your Google account or Axtra ID password private. Activity from your account is treated as your responsibility.</p>
+                </div>
+                <div class="notice-item" style="margin:0;">
+                    <h4>2. Use playlists fairly</h4>
+                    <p>Do not misuse public playlists, notices, or support tools. Headquarters may moderate playlists and tickets if needed.</p>
+                </div>
+                <div class="notice-item" style="margin:0;">
+                    <h4>3. Store accurate details</h4>
+                    <p>Your display name, Axtra ID, likes, and playlist history can be saved in Firebase to keep your account persistent across sessions.</p>
+                </div>
+            </div>
+            <label style="display:flex; gap:12px; align-items:flex-start; margin-bottom:20px; font-size:14px; color: var(--text-dim);">
+                <input id="termsCheckbox" type="checkbox" style="margin-top:4px; width:18px; height:18px;">
+                <span>I understand and agree to Axtra Music terms, account storage, and playlist/like persistence.</span>
+            </label>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button class="primary-btn" type="button" onclick="acceptTerms()" style="flex:1;">Accept And Continue</button>
+                <button class="ghost-btn" type="button" onclick="signOut()" style="flex:1;">Logout Instead</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="app-shell">
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <div class="play-btn" style="width:40px; height:40px; font-size:14px;" onclick="toggleSidebar()">☰</div>
+            <div style="display:flex; flex-direction:column;">
+                <span class="logo-text">AXTRA</span>
+                <span style="font-size:8px; letter-spacing:2px; opacity:0.5; margin-left:2px;">STUDIO PLATFORMS</span>
+            </div>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto;">
+            <p class="section-label" style="font-size: 10px; padding: 0 30px; margin-bottom: 10px; opacity: 0.4;">EXPLORE</p>
+            <div class="nav-item active" onclick="resetPlaylist()"><span class="nav-text">🏠 Home Studio</span></div>
+            <div class="nav-item" onclick="window.location.href='podcasts.html'"><span class="nav-text">🎙️ Podcasts</span></div>
+            <div class="nav-item" onclick="window.location.href='concerts.html'"><span class="nav-text">🎸 Live Concerts</span></div>
+            <div class="nav-item" onclick="openAbout()"><span class="nav-text">📖 About Us</span></div>
+            <div class="nav-item" onclick="openDev()"><span class="nav-text">💻 Dev Team</span></div>
+            <div class="nav-item" onclick="window.location.href='artists.html'"><span class="nav-text">🎙️ Artists</span></div>
+            
+            <p class="section-label" style="font-size: 10px; padding: 0 30px; margin: 30px 0 10px; opacity: 0.4;">Top Movie Albums</p>
+            <div id="commonAlbums"></div>
+            <div id="cloudPlaylists"></div>
+            <div id="adminAlbumSection" style="padding: 0 20px; display:none; margin-top: 20px;">
+                <button onclick="openAlbumManager()" class="nav-item" style="width:100%; border:none; background:var(--accent); color:white; margin:0; justify-content: center;">📀 Create Album</button>
+            </div>
+            
+            <div id="createArea" style="padding: 0 20px; display:none; margin-top: 20px;">
+                <input type="text" id="pName" placeholder="New Playlist..." class="search-bar" style="font-size: 11px; padding: 10px; margin-bottom:5px; width: 100%;">
+                <button onclick="createPlaylist()" class="nav-item" style="width:100%; border:none; background:var(--accent); color:white; margin:0; justify-content: center;">+ Create Public</button>
+            </div>
+        </div>
+
+        <a href="mailto:support@axtra.com?subject=Bug Report - v.1.12.001" class="bug-report">🐞 Report a Bug</a>
+
+        <div id="supportSection" style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div class="nav-item" onclick="openTicketChat()" style="width:100%; border:none; background:rgba(255,255,255,0.1); color:var(--text); margin:0;"><span class="nav-text">💬 Support Chat</span></div>
+        </div>
+
+        <div id="authSection" style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div style="display:grid; gap:10px;">
+                <button class="nav-item" style="width:100%; border:none; background:var(--accent); color:white; margin:0;" onclick="signIn()"><span class="nav-text">LOGIN WITH GOOGLE</span></button>
+                <button class="nav-item" style="width:100%; border:none; background:rgba(255,255,255,0.08); color:var(--text); margin:0;" onclick="openAuthModal('register')"><span class="nav-text">CREATE AXTRA ID</span></button>
+                <button class="nav-item" style="width:100%; border:none; background:rgba(255,255,255,0.05); color:var(--text); margin:0;" onclick="openAuthModal('login')"><span class="nav-text">LOGIN WITH AXTRA ID</span></button>
+            </div>
+        </div>
+    </aside>
+
+    <main>
+        <div class="glass-card">
+            <div class="marquee-container">
+                <div class="marquee-text">Over 140+ tracks to be added according to Axtra Development Goal Plan!! </div>
+            </div>
+        </div>
+
+        <!-- User's Playlists and Noticeboard Section -->
+        <div class="glass-card user-content-section" id="userPlaylistsSection">
+            <div class="content-tabs">
+                <div class="tab active" onclick="switchTab('playlists')">📂 Your AXPLAYLISTS</div>
+                <div class="tab" onclick="switchTab('noticeboard')">📢 AXNOTICES</div>
+                <div class="search-button" onclick="openSearchPopup()">🔍 Search AXDATABASE</div>
+            </div>
+
+            <div id="playlistsContent" class="tab-content active">
+                <div id="userPlaylistsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 20px;"></div>
+                <div id="noPlaylists" style="text-align: center; padding: 40px; opacity: 0.6;">
+                    <p>No playlists yet. Create your first playlist from the sidebar!</p>
+                </div>
+                <div style="padding: 0 20px 20px 20px; display: none;" id="browseTracksSection">
+                    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:15px; margin-bottom:20px; padding-top:20px;">
+                        <div>
+                            <h3 id="playlistTitle" style="margin:0 0 8px 0; color: var(--accent); font-size: 24px;">📂 Playlist Name</h3>
+                            <p id="playlistInfo" style="margin:0; opacity:0.7; font-size:13px;">0 songs • 0m</p>
+                        </div>
+                        <button id="resetView" class="reset-btn" onclick="resetPlaylist()">← Back to All</button>
+                    </div>
+                    <div id="playlist" style="padding:10px 0 0 0; overflow-y:auto; max-height:500px;"></div>
+                </div>
+            </div>
+
+            <div id="noticeboardContent" class="tab-content">
+                <div class="noticeboard-shell">
+                    <div>
+                        <div class="noticeboard-hero">
+                            <div class="noticeboard-badge">Live Noticeboard</div>
+                            <div>
+                                <h3>Studio updates, launches, and announcements in one clean feed.</h3>
+                                <p>Stay on top of new songs, team messages, and playlist drops. Admin can publish updates here instantly for everyone.</p>
+                            </div>
+                            <div class="notice-stats">
+                                <div class="notice-stat">
+                                    <strong id="noticeCount">0</strong>
+                                    <span>Published notices</span>
+                                </div>
+                                <div class="notice-stat">
+                                    <strong id="latestNoticeDate">-</strong>
+                                    <span>Latest post</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="notice-feed" style="margin-top: 20px;">
+                            <div class="panel-header">
+                                <div>
+                                    <h3 style="margin:0;">Recent Notices</h3>
+                                    <p style="margin:6px 0 0;">Fresh updates from the Axtra board.</p>
+                                </div>
+                            </div>
+                            <div id="noticeboardItems"></div>
+                        </div>
+                    </div>
+                    <div class="notice-composer">
+                        <div class="panel-header">
+                            <div>
+                                <h3 style="margin:0;">Post a Notice</h3>
+                                <p style="margin:6px 0 0;">A proper composer for announcements instead of browser prompts.</p>
+                            </div>
+                            <div id="noticeAdminBadge" class="notice-pill" style="display:none;">Admin</div>
+                        </div>
+                        <form id="noticeForm" onsubmit="submitNotice(event)">
+                            <div class="form-grid">
+                                <div class="field-group full">
+                                    <label for="noticeTitleInput">Title</label>
+                                    <input id="noticeTitleInput" class="composer-input" type="text" placeholder="New release, maintenance update, featured playlist...">
+                                </div>
+                                <div class="field-group full">
+                                    <label for="noticeContentInput">Message</label>
+                                    <textarea id="noticeContentInput" class="composer-input" placeholder="Write the full notice that should appear on the board."></textarea>
+                                </div>
+                            </div>
+                            <input id="editingNoticeId" type="hidden">
+                            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:18px;">
+                                <button id="noticeSubmitBtn" class="primary-btn" type="submit">Publish Notice</button>
+                                <button id="noticeCancelBtn" class="ghost-btn" type="button" onclick="resetNoticeForm()" style="display:none;">Cancel Edit</button>
+                            </div>
+                            <p id="noticeComposerHint" class="admin-only-note">Sign in as admin to publish or edit notices.</p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card player-bar">
+            <div style="display:flex; align-items:center;">
+                <img src="" id="mArt" style="width:60px; height:60px; border-radius:15px; object-fit:cover; background:#222;">
+                <div style="margin-left:20px;">
+                    <h4 id="mTitle">Select Track</h4>
+                    <p id="mArtist" style="font-size:12px; color:var(--text-dim);">Axtra Studio Ready</p>
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+                <div style="display:flex; align-items:center; gap:30px;">
+                    <span onclick="prev()" style="cursor:pointer">⏮</span>
+                    <div class="play-btn" id="pIcon" onclick="toggle()">▶</div>
+                    <span onclick="next()" style="cursor:pointer">⏭</span>
+                </div>
+                <div style="width:100%; display:flex; align-items:center; gap:12px; font-size:11px;">
+                    <span id="cTime">0:00</span>
+                    <div style="flex:1; height:5px; background:rgba(255,255,255,0.1); border-radius:10px; cursor:pointer;" onclick="seek(event)">
+                        <div id="pBar" style="height:100%; width:0%; background:var(--accent); border-radius:10px;"></div>
+                    </div>
+                    <span id="dTime">0:00</span>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; align-items:center; gap:15px;">
+                <span onclick="setTheme('light')" style="cursor:pointer">☀️</span>
+                <span onclick="setTheme('dark')" style="cursor:pointer">🌑</span>
+                <input type="range" style="accent-color:var(--accent); width:80px;" min="0" max="1" step="0.1" value="0.8" oninput="setVol(this.value)">
+            </div>
+
+            <div class="expand-toggle" onclick="togglePlayerExpansion()">ⓘ</div>
+
+            <div class="player-expanded" id="playerExpanded">
+                <h4 style="color: var(--accent); margin-bottom: 15px;">Track Details</h4>
+                <div class="track-codes">
+                    <h5>Track Code</h5>
+                    <div class="code-display" id="trackCode">No track selected</div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h5 style="color: var(--accent); margin-bottom: 10px;">Quick Actions</h5>
+                    <button onclick="shareTrack()" class="nav-item" style="width:100%; background: var(--accent); color: white; margin: 0; justify-content: center;">Share Track</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="bot-window" id="bot">
+    <div id="logs" style="flex:1; padding:20px; overflow-y:auto; font-family:monospace; font-size:12px; color:#94a3b8;">> Uplink established. Try !axeng1, !axhin1, !axticketgen, or !vibe</div>
+    <input type="text" id="botInput" placeholder="Enter Command..." style="padding:20px; background:#1e293b; border:none; color:white;" onkeypress="handleBotCommand(event)">
+</div>
+<button class="bot-fab" onclick="toggleBot()">AI</button>
+
+<audio id="audio"></audio>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC7I_pBRrcLV6sCZzWO4_RmBIrZLoWhXfk",
+      authDomain: "axtraplatforms.firebaseapp.com",
+      projectId: "axtraplatforms",
+      storageBucket: "axtraplatforms.firebasestorage.app",
+      messagingSenderId: "764125379196",
+      appId: "1:764125379196:web:5465fa0c1a4a87a6fda7f9",
+      measurementId: "G-Z321N3K0DX"
+    };
+
+    try {
+        firebase.initializeApp(firebaseConfig);
+        var auth = firebase.auth();
+        var db = firebase.firestore();
+    } catch(e) { console.warn("Firebase connection error:", e); }
+
+    // Added requested DAT links:
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/ishq-karavan-cxhindi003.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/lamha-sohel-cxeng-002.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/mendes-strick-cxeng006.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/mendes-treatbetter%20cxeng004.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/mocking-eminem-cxeng005.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/naina-bad-crew%20cxhindi004.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/ntghold-mendes-cxeng008.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/walkwind-1d-exeng009.dat
+    // Previous Additions (3 files from commit 38d2120):
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/38d2120fc1b2ecc0e71e3d0e6637271725b954d7/1d-lifestory-cxeng010.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/38d2120fc1b2ecc0e71e3d0e6637271725b954d7/1d-stocksyndro-cxeng007.dat
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/38d2120fc1b2ecc0e71e3d0e6637271725b954d7/castle-ed-hill-cxeng012.dat
+    // Earlier Addition (1 file from commit 7e5e9ce):
+    // https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/7e5e9ce49e950c90bb8d0a2ba78919d5203ae2c1/1d-changes-night-cxeng011.dat
+    const tracks = [
+        {
+            title: " Ae Ajnabee (Coke Studio 26)    ",
+            artist: "Aditya Rikhari, Kutle Khan and Ravator",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/main/ajnabi-2026-cxhindi001-adirikh.mp3",
+            img: "https://rollingstoneindia.com/wp-content/uploads/2026/03/Aditya-Rikhari-Kutle-Khan-and-Ravator-Coke-Studio-web.jpg",
+            cmd: "axhin1"
+        },
+        {
+            title: "-Blinding Lights (Trending #1)",
+            artist: "The Weeknd",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/main/bli-lights-week%20cxeng002.mp3",
+            img: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=400&h=400&fit=crop",  
+            cmd: "axeng1"
+        },
+        {
+            title: " Save Your Tears (REMIX)",
+            artist: "The Weeknd & Ariana Grande",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/main/tears-aria-week%20cxeng001.mp3",
+            img: "https://www.billboard.com/wp-content/uploads/2023/02/the-weeknd-ariana-grande-billboard-1548.jpg?w=1024",
+            cmd: "axeng2"
+        },
+        {
+            title: "DEACTIVATED LINK",
+            artist: "Axtra Studio",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/ravatoraxtra26/main/Kuley%20Kuley%20-%20Honey%203.0%20128%20Kbps.mp3",
+            img: "https://images.unsplash.com/photo-1459749411177-042180ce673c?q=80&w=400&h=400&fit=crop",
+            cmd: "axhin2"
+        },
+        {
+            title: "DEACTIVATED",
+            artist: "Axtra Studio",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/ravatoraxtra26/main/Winning%20(Official%20Track).mp3",
+            img: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng3"
+        },
+        {
+            title: "Ishq Jalakar- Karavan",
+            artist: "Syncing Error. Please report through AXTICKET",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/ishq-karavan-cxhindi003.dat",
+            img: "https://images.unsplash.com/photo-1521939094609-93aba1af40d0?q=80&w=400&h=400&fit=crop",
+            cmd: "axhin3",
+            type: "audio/mpeg"
+        },
+        {
+            title: " Lamha Lamha (Aspirants)",
+            artist: "Goldie Sohel",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/lamha-sohel-cxeng-002.dat",
+            img: "https://images.unsplash.com/photo-1504840707675-2535d90b9f9c?q=80&w=400&h=400&fit=crop",
+            cmd: "axhin4",
+            type: "audio/mpeg"
+        },
+        {
+            title: "Stitches",
+            artist: "Shawn Mendes",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/mendes-strick-cxeng006.dat",
+            img: "https://images.unsplash.com/photo-1511376777868-611b54f68947?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng4",
+            type: "audio/mpeg"
+        },
+        {
+            title: "Treat You Better",
+            artist: "Shawn Mendes",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/mendes-treatbetter%20cxeng004.dat",
+            img: "https://images.unsplash.com/photo-1521671065870-9f503fd33e6f?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng5",
+            type: "audio/mpeg"
+        },
+        {
+            title: "Mockingbird",
+            artist: "Eminem",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/mocking-eminem-cxeng005.dat",
+            img: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng6",
+            type: "audio/mpeg"
+        },
+        {
+            title: "Naina (CREW)",
+            artist: "Diljeet Dosanjh, Badshah",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/naina-bad-crew%20cxhindi004.dat",
+            img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=400&h=400&fit=crop",
+            cmd: "axhin5",
+            type: "audio/mpeg"
+        },
+        {
+            title: " There's Nothin' Holdin' Me Back",
+            artist: "Shawn Mendes",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/ntghold-mendes-cxeng008.dat",
+            img: "https://images.unsplash.com/photo-1528874188496-c0cb5f62a1f3?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng7",
+            type: "audio/mpeg"
+        },
+        {
+            title: "Walking in the Wind",
+            artist: "One Direction",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/f8fe732e95a3daf14f5829a29feb089de33a641e/walkwind-1d-exeng009.dat",
+            img: "https://images.unsplash.com/photo-1524678606370-a47ad25cb82a?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng8",
+            type: "audio/mpeg"
+        },
+        {
+            title: "Story of my Life",
+            artist: "One Direction",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/38d2120fc1b2ecc0e71e3d0e6637271725b954d7/1d-lifestory-cxeng010.dat",
+            img: "https://images.unsplash.com/photo-1487215078519-e21cc028cb29?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng9",
+            type: "audio/mpeg"
+        },
+        {
+            title: " Stockholme Syndrome",
+            artist: "One Direction",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/38d2120fc1b2ecc0e71e3d0e6637271725b954d7/1d-stocksyndro-cxeng007.dat",
+            img: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng10",
+            type: "audio/mpeg"
+        },
+        {
+            title: " Castle on the Hill",
+            artist: "Ed Sheeran",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/38d2120fc1b2ecc0e71e3d0e6637271725b954d7/castle-ed-hill-cxeng012.dat",
+            img: "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng11",
+            type: "audio/mpeg"
+        },
+        {
+            title: "Night Changes",
+            artist: "1D",
+            url: "https://raw.githubusercontent.com/innovation-nimzo/axtra-assets-v1.series/7e5e9ce49e950c90bb8d0a2ba78919d5203ae2c1/1d-changes-night-cxeng011.dat",
+            img: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=400&h=400&fit=crop",
+            cmd: "axeng12",
+            type: "audio/mpeg"
+        },
+
+    ];
+
+    const ADMIN_EMAIL = 'satyam.nigam2011@gmail.com';
+    const AXTRA_SESSION_KEY = 'axtraMusicSession';
+    let filtered = [...tracks];
+    let likedSet = new Set();
+    let curIdx = 0;
+    let currentObjectUrl = null;
+    let currentTrack = null;
+    let currentManagedPlaylistId = null;
+    let noticeboardUnsubscribe = null;
+    let likedSongsUnsubscribe = null;
+    let userPlaylistsUnsubscribe = null;
+    let currentProfile = null;
+    let authMode = 'register';
+    const audio = document.getElementById('audio');
+    audio.crossOrigin = 'anonymous';
+    audio.preload = 'auto';
+
+
+
+    // AI COMMAND SYSTEM
+    async function handleBotCommand(e) {
+        if(e.key !== 'Enter') return;
+        const input = e.target.value.toLowerCase().trim();
+        const logs = document.getElementById('logs');
+        const addLog = (msg) => logs.innerHTML += `<div>> ${msg}</div>`;
+        
+        addLog(input);
+        e.target.value = '';
+
+        if(input === '!next') {
+            next();
+            addLog("Skipping to next track...");
+        } else if(input === '!stop') {
+            audio.pause();
+            document.getElementById('pIcon').innerText='▶';
+            addLog("Playback halted.");
+        } else if(input === '!shuffle') {
+            const r = Math.floor(Math.random() * tracks.length);
+            loadTrack(r);
+            addLog("Deck shuffled. Playing random.");
+        } else if(input === '!vibe') {
+            const themes = ['light', 'dark'];
+            const chosen = themes[Math.floor(Math.random()*2)];
+            setTheme(chosen);
+            addLog(`Theme set to ${chosen} mode.`);
+        } else if(input === '!axticketgen') {
+            const previewCode = generateTicketNumber();
+            window.open('ticket.html', '_blank');
+            addLog(`Ticket generator opened. Your next ticket code will look like ${previewCode}.`);
+        } else if (/^!axticket-[a-z0-9]+_status$/i.test(input)) {
+            const ticketCode = input.slice(1, -7).toUpperCase();
+            addLog(`Checking status for ${ticketCode}...`);
+            try {
+                const ticket = await fetchTicketByCode(ticketCode);
+                if (!ticket) {
+                    addLog(`No ticket found for ${ticketCode}.`);
+                } else {
+                    const launched = formatTicketMoment(ticket.launchedAt || ticket.createdAt);
+                    const closed = ticket.closedAt ? formatTicketMoment(ticket.closedAt) : 'Not closed yet';
+                    addLog(`${ticketCode}: ${formatTicketStatus(ticket.status)} | launched ${launched} | closed ${closed}`);
+                }
+            } catch (error) {
+                console.error('Ticket status lookup failed:', error);
+                addLog('Ticket status lookup failed. Please try again.');
+            }
+        } else {
+            const trackMatch = tracks.find(t => `!${t.cmd}` === input);
+            if(trackMatch) {
+                loadTrack(tracks.indexOf(trackMatch));
+                addLog(`Playing ${trackMatch.title}...`);
+            } else {
+                addLog("Invalid command. Try !axeng1, !axhin1, !axticketgen, !next, or !vibe.");
+            }
+        }
+        logs.scrollTop = logs.scrollHeight;
+    }
+
+    function toggleInfo() {
+        const pop = document.getElementById('infoPop');
+        pop.style.display = pop.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // DEBUG: Check playlists in Firestore
+    async function debugPlaylists() {
+        if (!auth.currentUser) {
+            console.log('Not logged in');
+            alert('Please login first');
+            return;
+        }
+        console.log('Current user:', auth.currentUser.displayName, auth.currentUser.uid);
+        try {
+            const snapshot = await db.collection("playlists").where("creator", "==", auth.currentUser.displayName).get();
+            console.log('Playlists found:', snapshot.size);
+            snapshot.forEach(doc => {
+                console.log('Playlist:', doc.id, doc.data());
+            });
+            alert(`Found ${snapshot.size} playlists. Check console for details.`);
+        } catch (error) {
+            console.error('Debug error:', error);
+            alert('Error: ' + error.message);
+        }
+    }
+
+    function syncLikes() {
+        const accountKey = getCurrentAccountKey();
+        if (!accountKey) return;
+        if (likedSongsUnsubscribe) likedSongsUnsubscribe();
+        likedSongsUnsubscribe = db.collection("users").doc(accountKey).collection("likes")
+          .onSnapshot(snap => {
+            likedSet.clear();
+            snap.forEach(doc => likedSet.add(doc.id));
+            render();
+          });
+    }
+
+    function render() {
+        const lib = document.getElementById('playlist'); 
+        if(!lib) return;
+        lib.innerHTML = '';
+        filtered.forEach((t, i) => {
+            const actualIdx = tracks.findIndex(original => original.title === t.title);
+            const isCurrent = actualIdx === curIdx;
+            const isLiked = likedSet.has(t.cmd);
+            const row = document.createElement('div');
+            row.className = `song-row ${isCurrent ? 'active' : ''}`;
+            row.onclick = (e) => { if(!e.target.classList.contains('like-btn')) loadTrack(actualIdx); };
+            row.innerHTML = `
+                <img src="${t.img}" style="width:45px;height:45px;border-radius:12px;margin-right:20px;object-fit:cover;">
+                <div style="flex:1">
+                    <div style="font-weight:600">${cleanTitle(t.title)}</div>
+                    <div style="font-size:12px;opacity:0.5">${t.artist}</div>
+                </div>
+                <span class="like-btn" onclick="toggleLike('${t.title}')" style="cursor:pointer; padding:5px; font-size:18px;">
+                    ${isLiked ? '❤️' : '🤍'}
+                </span>
+            `;
+            lib.appendChild(row);
+        });
+    }
+
+    async function toggleLike(title) {
+        const accountKey = getCurrentAccountKey();
+        if (!accountKey) return alert("Please login first to like songs!");
+        const track = tracks.find(t => t.title === title);
+        const ref = db.collection("users").doc(accountKey).collection("likes").doc(track.cmd);
+        
+        if (likedSet.has(track.cmd)) {
+            await ref.delete();
+        } else {
+            await ref.set({ 
+                ...track, 
+                accountKey,
+                userName: getCurrentDisplayName(),
+                userEmail: currentProfile?.email || '',
+                likedAt: firebase.firestore.FieldValue.serverTimestamp() 
+            });
+        }
+    }
+
+    function search() {
+        openSearchPopup();
+    }
+
+    function resetPlaylist() {
+        filtered = [...tracks];
+        document.getElementById('resetView').style.display = 'none';
+        
+        // Show playlist grid again and hide browse section
+        const grid = document.getElementById('userPlaylistsGrid');
+        const browseSection = document.getElementById('browseTracksSection');
+        
+        if (grid) grid.style.display = 'grid';
+        if (browseSection) browseSection.style.display = 'none';
+        
+        // Reset browse section headers
+        document.getElementById('playlistTitle').innerHTML = 'Browse Tracks';
+        document.getElementById('playlistInfo').innerHTML = '0 songs • 0m';
+        
+        render();
+    }
+
+    function openSearchPopup() {
+        document.getElementById('searchModal').style.display = 'flex';
+        document.getElementById('searchInputModal').value = '';
+        document.getElementById('searchResults').innerHTML = '<p style="opacity:.7;">Type a track title or artist to search...</p>';
+        setTimeout(() => document.getElementById('searchInputModal').focus(), 100);
+    }
+
+    function closeSearchPopup() {
+        document.getElementById('searchModal').style.display = 'none';
+        document.getElementById('searchResults').innerHTML = '';
+    }
+
+    function searchTracks() {
+        const q = document.getElementById('searchInputModal').value.toLowerCase().trim();
+        const results = q ? tracks.filter(t => t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)) : [];
+        renderSearchResults(results);
+    }
+
+    function renderSearchResults(results) {
+        const container = document.getElementById('searchResults');
+        container.innerHTML = '';
+
+        if (!results.length) {
+            container.innerHTML = '<p style="opacity:.7;">No matching tracks found. Try another keyword.</p>';
+            return;
+        }
+
+        results.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'search-result';
+            item.innerHTML = `
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <img src="${t.img}" style="width:50px;height:50px;border-radius:12px;object-fit:cover;">
+                    <div style="flex:1;">
+                        <div style="font-weight:700;">${cleanTitle(t.title)}</div>
+                        <div style="font-size:12px; opacity:0.7;">${t.artist}</div>
+                        <div style="font-size:12px; opacity:0.6; margin-top:4px;">Code: ${t.cmd || 'N/A'}</div>
+                    </div>
+                    <button style="background: var(--accent); color: white; border: none; border-radius: 12px; padding: 10px 14px; cursor: pointer;">Play</button>
+                </div>
+            `;
+            item.onclick = () => { loadTrack(tracks.findIndex(track => track.title === t.title)); closeSearchPopup(); };
+            container.appendChild(item);
+        });
+    }
+
+    async function loadLikedPlaylist() {
+        const accountKey = getCurrentAccountKey();
+        if (!accountKey) return;
+        const snap = await db.collection("users").doc(accountKey).collection("likes").orderBy("likedAt", "desc").get();
+        const liked = []; 
+        snap.forEach(d => liked.push(d.data()));
+        if(liked.length > 0) { 
+            filtered = liked; 
+            document.getElementById('resetView').style.display = 'block';
+            render(); 
+        } else { 
+            alert("You haven't liked any songs yet!"); 
+        }
+    }
+
+    async function getTrackSrc(t) {
+        if(!t.url || !t.url.toLowerCase().endsWith('.dat')) return t.url;
+        try {
+            const res = await fetch(t.url);
+            if(!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+            const blob = await res.blob();
+            const mime = t.type || blob.type || 'audio/mpeg';
+            const datBlob = blob.type.startsWith('audio/') ? blob : new Blob([blob], { type: mime });
+            if(currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+            currentObjectUrl = URL.createObjectURL(datBlob);
+            return currentObjectUrl;
+        } catch (err) {
+            console.warn('DAT source fetch failed, falling back to direct URL.', err);
+            return t.url;
+        }
+    }
+
+    async function loadTrack(idx) {
+        if(idx < 0) idx = 0;
+        curIdx = idx;
+        const t = tracks[idx];
+        currentTrack = t;
+        audio.dataset.datRetry = '';
+        audio.src = await getTrackSrc(t);
+        document.getElementById('mTitle').innerText = cleanTitle(t.title);
+        document.getElementById('mArtist').innerText = t.artist;
+        document.getElementById('mArt').src = t.img;
+        document.getElementById('trackCode').innerText = t.cmd || 'N/A';
+        document.getElementById('pIcon').innerText = '⏸';
+        document.body.classList.add('playing');
+        render();
+        audio.play().catch(() => {
+            console.warn('Audio play prevented by browser autoplay policy.');
+        });
+    }
+
+    audio.onerror = async () => {
+        if(currentTrack && currentTrack.url.toLowerCase().endsWith('.dat') && !audio.dataset.datRetry) {
+            audio.dataset.datRetry = 'true';
+            audio.src = await getTrackSrc(currentTrack);
+            audio.play().catch(() => {});
+        }
+    };
+
+    function toggle() { audio.paused ? (audio.play(), document.getElementById('pIcon').innerText='⏸') : (audio.pause(), document.getElementById('pIcon').innerText='▶'); }
+    function next() { curIdx = (curIdx + 1) % tracks.length; loadTrack(curIdx); }
+    function prev() { curIdx = (curIdx - 1 + tracks.length) % tracks.length; loadTrack(curIdx); }
+    function setVol(v) { audio.volume = v; }
+    function seek(e) { audio.currentTime = ((e.clientX - e.currentTarget.getBoundingClientRect().left) / e.currentTarget.offsetWidth) * audio.duration; }
+
+    function togglePlayerExpansion() {
+        const expanded = document.getElementById('playerExpanded');
+        expanded.classList.toggle('expanded');
+    }
+
+    function shareTrack() {
+        if (currentTrack) {
+            const shareText = `🎵 Now playing: ${currentTrack.title} by ${currentTrack.artist}\nCode: ${currentTrack.cmd}\n#AxtraMusic`;
+            
+            // WhatsApp Web Share
+            if (navigator.share) {
+                navigator.share({ text: shareText }).catch(err => console.log('Share cancelled'));
+            } else {
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+                window.open(whatsappUrl, '_blank');
+            }
+        }
+    }
+
+    function sharePlaylistWhatsApp(playlistId, playlistName, creator) {
+        const userName = auth.currentUser ? auth.currentUser.displayName : 'User';
+        const shareText = `AXTRA MUSIC 2026\nListen to ${userName}'s Playlist on Axtra Music without ads!\n\n📂 ${playlistName}\nby ${creator}\n\n#AxtraMusic #FreeVibes #RevolutionisingSounds`;
+        
+        // Generate share URL
+        const shareUrl = `${window.location.origin}${window.location.pathname}?playlist=${playlistId}`;
+        const fullMessage = `${shareText}\n\n${shareUrl}`;
+        
+        // WhatsApp Web Share
+        if (navigator.share) {
+            navigator.share({ 
+                title: playlistName,
+                text: fullMessage 
+            }).catch(err => console.log('Share cancelled'));
+        } else {
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+    }
+
+    // Album Management Functions
+    async function openAlbumManager() {
+        if (!isAdminUser()) {
+            alert('Only admin can create albums');
+            return;
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'full-modal';
+        modal.innerHTML = `
+            <span class="close-modal" onclick="this.parentElement.remove()">✕</span>
+            <h1 style="font-family:'Syncopate'; font-size: 50px; color: var(--accent);">ALBUM MANAGER</h1>
+            <div style="max-width: 800px; margin-top: 40px;">
+                <div style="background: rgba(255,255,255,0.05); border-radius: 20px; padding: 20px; margin-bottom: 30px;">
+                    <h3 style="color: var(--accent); margin-top: 0;">Create New Album</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <input type="text" id="albumNameInput" placeholder="Album Name" class="search-bar" style="padding: 12px; font-size: 14px;">
+                        <input type="text" id="albumImgInput" placeholder="Cover Image URL" class="search-bar" style="padding: 12px; font-size: 14px;">
+                    </div>
+                    <button onclick="createAlbum()" class="nav-item" style="background: var(--accent); color: white; margin: 15px 0 0 0; width: 100%; justify-content: center;">Create Album</button>
+                </div>
+                <div id="albumsList" style="display: flex; flex-direction: column; gap: 15px;"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+        loadAdminAlbums();
+    }
+
+    async function createAlbum() {
+        const name = document.getElementById('albumNameInput')?.value.trim();
+        const img = document.getElementById('albumImgInput')?.value.trim();
+
+        if (!name) {
+            alert('Please enter an album name');
+            return;
+        }
+
+        if (!isAdminUser()) {
+            alert('Only admin can create albums');
+            return;
+        }
+
+        try {
+            await db.collection("adminAlbums").add({
+                name,
+                img: img || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=400&h=400&fit=crop',
+                tracks: [],
+                creator: auth.currentUser.displayName,
+                creatorUid: auth.currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            document.getElementById('albumNameInput').value = '';
+            document.getElementById('albumImgInput').value = '';
+            alert('Album created successfully! You can now add songs to it.');
+            loadAdminAlbums();
+        } catch (error) {
+            console.error('Error creating album:', error);
+            alert('Error creating album: ' + error.message);
+        }
+    }
+
+    async function loadAdminAlbums() {
+        const container = document.getElementById('albumsList');
+        if (!container) return;
+
+        try {
+            const snapshot = await db.collection("adminAlbums").where("creatorUid", "==", auth.currentUser.uid).get();
+            
+            container.innerHTML = '';
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.6; padding: 20px;">No albums yet. Create one above.</p>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const album = doc.data();
+                const div = document.createElement('div');
+                div.style.cssText = 'background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.08);';
+                div.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <img src="${album.img}" style="width: 60px; height: 60px; border-radius: 10px; object-fit: cover;">
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0; color: var(--accent);">${album.name}</h4>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.7;">${album.tracks ? album.tracks.length : 0} songs</p>
+                        </div>
+                        <button onclick="editAlbum('${doc.id}')" style="background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer;">Edit</button>
+                        <button onclick="deleteAlbum('${doc.id}')" style="background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer;">Delete</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        } catch (error) {
+            console.error('Error loading albums:', error);
+        }
+    }
+
+    async function editAlbum(albumId) {
+        if (!isAdminUser()) return;
+
+        try {
+            const doc = await db.collection("adminAlbums").doc(albumId).get();
+            if (!doc.exists) return;
+
+            const album = doc.data();
+            const modal = document.createElement('div');
+            modal.className = 'full-modal';
+            modal.innerHTML = `
+                <span class="close-modal" onclick="this.parentElement.remove()">✕</span>
+                <h1 style="font-family:'Syncopate'; font-size: 50px; color: var(--accent);">EDIT ALBUM: ${escapeHtml(album.name)}</h1>
+                <div class="manager-layout" style="max-width: 1000px; margin-top: 40px;">
+                    <div class="manager-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3 style="margin:0;">Album Songs</h3>
+                                <p style="margin:6px 0 0;">Manage songs in this album</p>
+                            </div>
+                        </div>
+                        <div id="albumSongs" class="manager-list"></div>
+                    </div>
+                    <div class="song-picker">
+                        <div class="manager-panel">
+                            <div class="panel-header">
+                                <div>
+                                    <h3 style="margin:0;">Add From Library</h3>
+                                    <p style="margin:6px 0 0;">Search songs in Axtra library</p>
+                                </div>
+                            </div>
+                            <input id="albumSongSearch" class="composer-input" type="text" placeholder="Search title or artist..." oninput="renderLibraryTracksForAlbum('${albumId}')">
+                            <div id="libraryAlbumTracks" class="library-results" style="margin-top:14px;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.style.display = 'flex';
+            renderAlbumSongs(albumId);
+        } catch (error) {
+            console.error('Error editing album:', error);
+        }
+    }
+
+    async function renderAlbumSongs(albumId) {
+        try {
+            const doc = await db.collection("adminAlbums").doc(albumId).get();
+            if (!doc.exists) return;
+
+            const album = doc.data();
+            const container = document.getElementById('albumSongs');
+            if (!container) return;
+
+            container.innerHTML = '';
+            if (!album.tracks || album.tracks.length === 0) {
+                container.innerHTML = '<div class="empty-state">No songs in this album yet.</div>';
+                return;
+            }
+
+            album.tracks.forEach((track, index) => {
+                const div = document.createElement('div');
+                div.className = 'manager-track';
+                div.innerHTML = `
+                    <img src="${escapeHtml(track.img || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=200&h=200&fit=crop')}" alt="">
+                    <div>
+                        <h4>${escapeHtml(cleanTitle(track.title || 'Untitled'))}</h4>
+                        <p>${escapeHtml(track.artist || 'Unknown')}</p>
+                    </div>
+                    <button onclick="removeTrackFromAlbum('${albumId}', ${index})" class="action-btn danger-btn">Remove</button>
+                `;
+                container.appendChild(div);
+            });
+        } catch (error) {
+            console.error('Error rendering album songs:', error);
+        }
+    }
+
+    function renderLibraryTracksForAlbum(albumId) {
+        const container = document.getElementById('libraryAlbumTracks');
+        if (!container) return;
+
+        const query = (document.getElementById('albumSongSearch')?.value || '').toLowerCase().trim();
+        const list = tracks
+            .map((track, index) => ({ track, index }))
+            .filter(({ track }) => !query || `${track.title} ${track.artist}`.toLowerCase().includes(query))
+            .slice(0, 12);
+
+        if (list.length === 0) {
+            container.innerHTML = '<div class="empty-state" style="min-height: 140px;">No matching songs found.</div>';
+            return;
+        }
+
+        container.innerHTML = list.map(({ track, index }) => `
+            <div class="library-track">
+                <img src="${escapeHtml(track.img || '')}" alt="">
+                <div>
+                    <div style="font-weight:700; margin-bottom:3px;">${escapeHtml(cleanTitle(track.title || ''))}</div>
+                    <div style="font-size:12px; opacity:0.65;">${escapeHtml(track.artist || '')}</div>
+                </div>
+                <button class="action-btn primary-btn" type="button" onclick="addTrackToAlbum('${albumId}', ${index})">Add</button>
+            </div>
+        `).join('');
+    }
+
+    async function addTrackToAlbum(albumId, trackIndex) {
+        const track = tracks[trackIndex];
+        if (!track) return;
+
+        try {
+            await db.collection("adminAlbums").doc(albumId).update({
+                tracks: firebase.firestore.FieldValue.arrayUnion(normalizeTrack(track))
+            });
+            alert('Song added to album!');
+            renderAlbumSongs(albumId);
+            renderLibraryTracksForAlbum(albumId);
+        } catch (error) {
+            console.error('Error adding track:', error);
+            alert('Error adding song');
+        }
+    }
+
+    async function removeTrackFromAlbum(albumId, trackIndex) {
+        try {
+            const doc = await db.collection("adminAlbums").doc(albumId).get();
+            if (doc.exists) {
+                const album = doc.data();
+                const updatedTracks = [...(album.tracks || [])];
+                updatedTracks.splice(trackIndex, 1);
+
+                await db.collection("adminAlbums").doc(albumId).update({
+                    tracks: updatedTracks
+                });
+                renderAlbumSongs(albumId);
+            }
+        } catch (error) {
+            console.error('Error removing track:', error);
+        }
+    }
+
+    async function deleteAlbum(albumId) {
+        if (!confirm('Delete this album?')) return;
+
+        try {
+            await db.collection("adminAlbums").doc(albumId).delete();
+            loadAdminAlbums();
+        } catch (error) {
+            console.error('Error deleting album:', error);
+            alert('Error deleting album');
+        }
+    }
+
+    async function listenAdminAlbums() {
+        if (!isAdminUser()) return;
+
+        db.collection("adminAlbums").where("creatorUid", "==", auth.currentUser.uid).onSnapshot(snap => {
+            const con = document.getElementById('commonAlbums');
+            if (!con) return;
+            
+            // Add existing album items
+            snap.forEach(doc => {
+                const album = doc.data();
+                const existingDiv = con.querySelector(`[data-album-id="${doc.id}"]`);
+                
+                if (!existingDiv) {
+                    const div = document.createElement('div');
+                    div.className = 'nav-item';
+                    div.setAttribute('data-album-id', doc.id);
+                    div.innerHTML = `<span class="nav-text">📀 ${album.name}</span>`;
+                    div.onclick = () => {
+                        filtered = album.tracks || [];
+                        document.getElementById('resetView').style.display = 'block';
+                        render();
+                    };
+                    con.appendChild(div);
+                }
+            });
+
+            // Show admin album section if admin has albums
+            const adminSection = document.getElementById('adminAlbumSection');
+            if (adminSection && snap.size > 0) {
+                adminSection.style.display = 'block';
+            }
+        });
+    }
+
+
+
+    audio.onended = () => next();
+    audio.ontimeupdate = () => {
+        document.getElementById('pBar').style.width = (audio.currentTime / audio.duration) * 100 + '%';
+        document.getElementById('cTime').innerText = format(audio.currentTime);
+        document.getElementById('dTime').innerText = format(audio.duration || 0);
+    };
+    function format(s) { let m=Math.floor(s/60), sc=Math.floor(s%60); return `${m}:${sc<10?'0':''}${sc}`; }
+
+    function toggleSidebar() { 
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('collapsed');
+    }
+    
+    function toggleBot() { const b = document.getElementById('bot'); b.style.display = b.style.display === 'flex' ? 'none' : 'flex'; }
+    function setTheme(t) { document.body.className = t + '-mode'; }
+    function getStoredAxtraSession() {
+        try {
+            return JSON.parse(localStorage.getItem(AXTRA_SESSION_KEY) || 'null');
+        } catch (error) {
+            console.warn('Failed to parse stored Axtra session:', error);
+            return null;
+        }
+    }
+    function saveAxtraSession(session) {
+        localStorage.setItem(AXTRA_SESSION_KEY, JSON.stringify(session));
+    }
+    function clearAxtraSession() {
+        localStorage.removeItem(AXTRA_SESSION_KEY);
+    }
+    function isAxtraSessionActive() {
+        return currentProfile && currentProfile.provider === 'axtra';
+    }
+    function getCurrentAccountKey() {
+        if (!currentProfile) return auth.currentUser ? auth.currentUser.uid : null;
+        return currentProfile.accountKey || currentProfile.uid || (auth.currentUser ? auth.currentUser.uid : null);
+    }
+    function getCurrentDisplayName() {
+        if (currentProfile?.displayName) return currentProfile.displayName;
+        if (auth.currentUser?.displayName) return auth.currentUser.displayName;
+        if (currentProfile?.accountId) return currentProfile.accountId;
+        return 'Axtra User';
+    }
+    function getCurrentPhotoURL() {
+        if (currentProfile?.photoURL) return currentProfile.photoURL;
+        return 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=100&h=100&fit=crop';
+    }
+    async function ensureFirebaseSession(preferred = 'anonymous') {
+        if (auth.currentUser) {
+            if (preferred === 'anonymous' && !auth.currentUser.isAnonymous) {
+                await auth.signOut();
+            } else {
+                return auth.currentUser;
+            }
+        }
+
+        if (preferred === 'anonymous') {
+            const credential = await auth.signInAnonymously();
+            return credential.user;
+        }
+
+        return auth.currentUser;
+    }
+    async function sha256(value) {
+        const encoded = new TextEncoder().encode(value);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+        return Array.from(new Uint8Array(hashBuffer)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+    function openAuthModal(mode = 'register') {
+        switchAuthMode(mode);
+        document.getElementById('authModal').style.display = 'flex';
+    }
+    function closeAuthModal() {
+        document.getElementById('authModal').style.display = 'none';
+    }
+    function switchAuthMode(mode) {
+        authMode = mode;
+        const registerTab = document.getElementById('authTabRegister');
+        const loginTab = document.getElementById('authTabLogin');
+        const registerNameGroup = document.getElementById('axtraRegisterNameGroup');
+        const submitBtn = document.getElementById('axtraAuthSubmit');
+        const hint = document.getElementById('axtraAuthHint');
+        if (registerTab) registerTab.className = mode === 'register' ? 'primary-btn' : 'ghost-btn';
+        if (loginTab) loginTab.className = mode === 'login' ? 'primary-btn' : 'ghost-btn';
+        if (registerNameGroup) registerNameGroup.style.display = mode === 'register' ? 'block' : 'none';
+        if (submitBtn) submitBtn.textContent = mode === 'register' ? 'Create Account' : 'Login Now';
+        if (hint) hint.textContent = mode === 'register'
+            ? 'Choose a permanent Axtra ID. It stays linked to your likes and playlists.'
+            : 'Enter your permanent Axtra ID and password to restore your library.';
+    }
+    async function submitAxtraAuth(event) {
+        event.preventDefault();
+        const accountId = (document.getElementById('axtraIdInput')?.value || '').trim().toLowerCase();
+        const password = (document.getElementById('axtraPasswordInput')?.value || '').trim();
+        const displayName = (document.getElementById('axtraNameInput')?.value || '').trim();
+
+        if (!/^[a-z0-9._-]{4,24}$/.test(accountId)) {
+            alert('Axtra ID must be 4-24 characters and use only letters, numbers, dot, dash, or underscore.');
+            return;
+        }
+        if (password.length < 6) {
+            alert('Password must be at least 6 characters.');
+            return;
+        }
+        if (authMode === 'register' && !displayName) {
+            alert('Please enter a display name.');
+            return;
+        }
+
+        try {
+            await ensureFirebaseSession('anonymous');
+            const profileRef = db.collection("axtraUsers").doc(`axtra_${accountId}`);
+            const profileDoc = await profileRef.get();
+            const passwordHash = await sha256(password);
+
+            if (authMode === 'register') {
+                if (profileDoc.exists) {
+                    alert('That Axtra ID is already taken. Try another one.');
+                    return;
+                }
+                const profile = {
+                    provider: 'axtra',
+                    accountId,
+                    accountKey: `axtra_${accountId}`,
+                    displayName,
+                    passwordHash,
+                    authUid: auth.currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    termsAcceptedAt: null
+                };
+                await profileRef.set(profile);
+                await db.collection("users").doc(profile.accountKey).set({
+                    accountId,
+                    displayName,
+                    provider: 'axtra',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                currentProfile = profile;
+                saveAxtraSession({ accountId, passwordHash });
+                closeAuthModal();
+                showTermsModal('Axtra ID account');
+                return;
+            }
+
+            if (!profileDoc.exists) {
+                alert('Axtra ID not found. Create the account first.');
+                return;
+            }
+            const profile = profileDoc.data();
+            if (profile.passwordHash !== passwordHash) {
+                alert('Incorrect Axtra ID password.');
+                return;
+            }
+            currentProfile = {
+                ...profile,
+                authUid: auth.currentUser.uid
+            };
+            saveAxtraSession({ accountId, passwordHash });
+            await profileRef.set({
+                lastLoginAt: firebase.firestore.FieldValue.serverTimestamp(),
+                authUid: auth.currentUser.uid
+            }, { merge: true });
+            closeAuthModal();
+            if (!currentProfile.termsAcceptedAt) {
+                showTermsModal(currentProfile.accountId || 'Axtra ID account');
+                return;
+            }
+            await finalizeUserSession();
+        } catch (error) {
+            console.error('Axtra auth failed:', error);
+            alert('Unable to complete Axtra login right now.');
+        }
+    }
+    async function hydrateStoredAxtraSession() {
+        const storedSession = getStoredAxtraSession();
+        if (!storedSession?.accountId || !storedSession?.passwordHash) return false;
+        await ensureFirebaseSession('anonymous');
+        const profileDoc = await db.collection("axtraUsers").doc(`axtra_${storedSession.accountId}`).get();
+        if (!profileDoc.exists) {
+            clearAxtraSession();
+            return false;
+        }
+        const profile = profileDoc.data();
+        if (profile.passwordHash !== storedSession.passwordHash) {
+            clearAxtraSession();
+            return false;
+        }
+        currentProfile = {
+            ...profile,
+            authUid: auth.currentUser?.uid || profile.authUid || ''
+        };
+        return true;
+    }
+    function showTermsModal(accountLabel) {
+        const modal = document.getElementById('termsModal');
+        const badge = document.getElementById('termsAccountBadge');
+        const checkbox = document.getElementById('termsCheckbox');
+        if (badge) badge.textContent = accountLabel;
+        if (checkbox) checkbox.checked = false;
+        if (modal) modal.style.display = 'flex';
+    }
+    async function acceptTerms() {
+        const checkbox = document.getElementById('termsCheckbox');
+        if (!checkbox?.checked) {
+            alert('Please accept the terms to continue.');
+            return;
+        }
+        if (!currentProfile) return;
+
+        try {
+            if (currentProfile.provider === 'google') {
+                await db.collection("axtraUsers").doc(`google_${currentProfile.uid}`).set({
+                    termsAcceptedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } else {
+                await db.collection("axtraUsers").doc(currentProfile.accountKey).set({
+                    termsAcceptedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+            document.getElementById('termsModal').style.display = 'none';
+            currentProfile.termsAcceptedAt = new Date().toISOString();
+            await finalizeUserSession();
+        } catch (error) {
+            console.error('Error accepting terms:', error);
+            alert('Could not save terms acceptance.');
+        }
+    }
+    async function upsertGoogleProfile(user) {
+        const profileRef = db.collection("axtraUsers").doc(`google_${user.uid}`);
+        const profileDoc = await profileRef.get();
+        const profile = {
+            provider: 'google',
+            uid: user.uid,
+            accountKey: user.uid,
+            displayName: user.displayName || 'Google User',
+            email: user.email || '',
+            photoURL: user.photoURL || '',
+            termsAcceptedAt: profileDoc.exists ? (profileDoc.data().termsAcceptedAt || null) : null,
+            createdAt: profileDoc.exists ? (profileDoc.data().createdAt || firebase.firestore.FieldValue.serverTimestamp()) : firebase.firestore.FieldValue.serverTimestamp()
+        };
+        await profileRef.set(profile, { merge: true });
+        await db.collection("users").doc(user.uid).set({
+            displayName: profile.displayName,
+            email: profile.email,
+            provider: 'google',
+            photoURL: profile.photoURL,
+            lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        currentProfile = profile;
+        return profile;
+    }
+    async function finalizeUserSession() {
+        renderAuthSection();
+        document.getElementById('createArea').style.display = currentProfile ? 'block' : 'none';
+        document.getElementById('adminAlbumSection').style.display = isAdminUser() ? 'block' : 'none';
+        if (isAdminUser()) {
+            listenAdminAlbums();
+        }
+        syncLikes();
+        listenPlaylists();
+        listenCommonAlbums();
+        loadNoticeboard();
+        render();
+    }
+    function renderAuthSection() {
+        const sec = document.getElementById('authSection');
+        if (!sec) return;
+        if (!currentProfile) {
+            sec.innerHTML = `
+                <div style="display:grid; gap:10px;">
+                    <button class="nav-item" style="width:100%; border:none; background:var(--accent); color:white; margin:0;" onclick="signIn()"><span class="nav-text">LOGIN WITH GOOGLE</span></button>
+                    <button class="nav-item" style="width:100%; border:none; background:rgba(255,255,255,0.08); color:var(--text); margin:0;" onclick="openAuthModal('register')"><span class="nav-text">CREATE AXTRA ID</span></button>
+                    <button class="nav-item" style="width:100%; border:none; background:rgba(255,255,255,0.05); color:var(--text); margin:0;" onclick="openAuthModal('login')"><span class="nav-text">LOGIN WITH AXTRA ID</span></button>
+                </div>
+            `;
+            return;
+        }
+        const isAdmin = isAdminUser();
+        const label = currentProfile.provider === 'google' ? (currentProfile.email || 'Google user') : `ID: ${currentProfile.accountId}`;
+        sec.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px; padding:10px 20px;">
+                <img src="${getCurrentPhotoURL()}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+                <span class="user-meta" style="font-size:12px; flex:1;">${escapeHtml(getCurrentDisplayName())}<br><span style="opacity:0.6;">${escapeHtml(label)}</span></span>
+                <span onclick="signOut()" style="cursor:pointer; font-size:12px; opacity:0.5;">Logout</span>
+            </div>
+            <div class="nav-item" onclick="loadLikedPlaylist()" style="color:#ff4757; background:rgba(255,71,87,0.1); margin:10px;"><span class="nav-text">❤ Liked Songs</span></div>
+            ${currentProfile.provider === 'axtra' ? '<div class="nav-item" onclick="openAuthModal(\'login\')" style="margin:10px; background:rgba(59,130,246,0.1); color:var(--accent);"><span class="nav-text">Switch Axtra ID</span></div>' : ''}
+            ${isAdmin ? '<a href="headquarters.html" class="nav-item" style="background:var(--accent); color:white; margin:10px; text-decoration:none;"><span class="nav-text">⚡ Headquarters</span></a>' : ''}
+        `;
+    }
+    function openSupport() {
+        document.getElementById('supportModal').style.display = 'flex';
+        document.getElementById('ticketForm').style.display = 'block';
+        document.getElementById('ticketSuccess').style.display = 'none';
+    }
+
+    async function submitTicket() {
+        const category = document.getElementById('ticketCategory').value;
+        const subject = document.getElementById('ticketSubject').value;
+        const message = document.getElementById('ticketMessage').value;
+        
+        if (!category || !subject || !message) {
+            alert('Please fill all fields');
+            return;
+        }
+        
+        const accountKey = getCurrentAccountKey();
+        if (!accountKey) {
+            alert('Please login first');
+            return;
+        }
+        
+        try {
+            const ticketNumber = generateTicketNumber();
+            const launchedAt = firebase.firestore.FieldValue.serverTimestamp();
+            
+            await db.collection("tickets").add({
+                ticketNumber,
+                ticketLookup: ticketNumber.toLowerCase(),
+                category,
+                subject,
+                message,
+                description: message,
+                userId: accountKey,
+                userEmail: currentProfile?.email || `${currentProfile?.accountId || 'axtra-user'}@axtra.local`,
+                userName: getCurrentDisplayName(),
+                status: 'ongoing',
+                createdAt: launchedAt,
+                launchedAt,
+                closedAt: null,
+                responses: [],
+                messages: [{
+                    text: message,
+                    from: 'user',
+                    timestamp: new Date().toISOString()
+                }]
+            });
+            
+            document.getElementById('ticketForm').style.display = 'none';
+            document.getElementById('ticketSuccess').style.display = 'block';
+            document.getElementById('ticketNumber').textContent = ticketNumber;
+            
+            // Clear form
+            document.getElementById('ticketCategory').value = '';
+            document.getElementById('ticketSubject').value = '';
+            document.getElementById('ticketMessage').value = '';
+        } catch (error) {
+            console.error('Error creating ticket:', error);
+            alert('Error creating ticket: ' + error.message);
+        }
+    }
+
+    function loadTickets() {
+        if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) return;
+        
+        db.collection("tickets").orderBy("createdAt", "desc").onSnapshot(snap => {
+            const container = document.getElementById('ticketsList');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            snap.forEach(doc => {
+                const ticket = doc.data();
+                const div = document.createElement('div');
+                div.style.cssText = 'background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1);';
+                div.innerHTML = `
+                    <h4 style="margin: 0 0 5px 0; color: var(--accent);">${ticket.ticketNumber}</h4>
+                    <p style="margin: 0 0 5px 0; font-weight: 600;">${ticket.subject}</p>
+                    <p style="margin: 0 0 5px 0; font-size: 12px; opacity: 0.7;">${ticket.category} • ${ticket.userName} • ${formatTicketStatus(ticket.status)}</p>
+                    <p style="margin: 0; font-size: 14px;">${ticket.message}</p>
+                    <button onclick="respondToTicket('${doc.id}')" style="margin-top: 10px; background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Respond</button>
+                `;
+                container.appendChild(div);
+            });
+        });
+    }
+
+    function sharePlaylist(playlistId, name, creator) {
+        const shareUrl = `${window.location.origin}${window.location.pathname}?playlist=${playlistId}`;
+        const shareText = `🎵 Check out my playlist "${name}" by ${creator}\n${shareUrl}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: name,
+                text: shareText,
+                url: shareUrl
+            });
+        } else {
+            navigator.clipboard.writeText(shareText);
+            alert('Playlist link copied to clipboard!');
+        }
+    }
+
+    function openAbout() { document.getElementById('aboutModal').style.display = 'flex'; }
+    function openDev() { document.getElementById('devModal').style.display = 'flex'; }
+    function closeModals() { document.querySelectorAll('.full-modal').forEach(m => m.style.display='none'); }
+
+    function signIn() { 
+        clearAxtraSession();
+        const provider = new firebase.auth.GoogleAuthProvider(); 
+        auth.signInWithPopup(provider).catch(err => alert("Error: Make sure Google Auth is enabled in Firebase Console!"));
+    }
+    
+    function signOut() {
+        clearAxtraSession();
+        currentProfile = null;
+        auth.signOut().then(() => location.reload());
+    }
+
+    if(false && auth) {
+        auth.onAuthStateChanged(user => {
+            const sec = document.getElementById('authSection');
+            const isAdmin = user && user.email === ADMIN_EMAIL;
+            if(user) {
+                sec.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px; padding:10px 20px;">
+                        <img src="${user.photoURL}" style="width:30px; border-radius:50%;">
+                        <span class="user-meta" style="font-size:12px; flex:1;">${user.displayName.split(' ')[0]}</span>
+                        <span onclick="signOut()" style="cursor:pointer; font-size:12px; opacity:0.5;">Logout</span>
+                    </div>
+                    <div class="nav-item" onclick="loadLikedPlaylist()" style="color:#ff4757; background:rgba(255,71,87,0.1); margin:10px;"><span class="nav-text">❤️ Liked Songs</span></div>
+                    ${isAdmin ? '<a href="headquarters.html" class="nav-item" style="background:var(--accent); color:white; margin:10px; text-decoration:none;"><span class="nav-text">⚡ Headquarters</span></a>' : ''}
+                `;
+                document.getElementById('createArea').style.display = 'block';
+                if (isAdmin) {
+                    document.getElementById('adminAlbumSection').style.display = 'block';
+                    listenAdminAlbums();
+                }
+                syncLikes();
+                listenPlaylists();
+                listenCommonAlbums();
+                loadNoticeboard();
+            } else {
+                render();
+                loadNoticeboard();
+            }
+        });
+    }
+
+    if(auth) {
+        auth.onAuthStateChanged(async user => {
+            try {
+                currentProfile = null;
+                if (user && !user.isAnonymous) {
+                    const profile = await upsertGoogleProfile(user);
+                    renderAuthSection();
+                    if (!profile.termsAcceptedAt) {
+                        showTermsModal(profile.email || 'Google account');
+                        return;
+                    }
+                    await finalizeUserSession();
+                    return;
+                }
+
+                if (user?.isAnonymous) {
+                    const restored = await hydrateStoredAxtraSession();
+                    renderAuthSection();
+                    if (restored) {
+                        if (!currentProfile?.termsAcceptedAt) {
+                            showTermsModal(currentProfile.accountId || 'Axtra ID account');
+                            return;
+                        }
+                        await finalizeUserSession();
+                        return;
+                    }
+                }
+
+                if (!user && getStoredAxtraSession()) {
+                    await ensureFirebaseSession('anonymous');
+                    return;
+                }
+
+                renderAuthSection();
+                document.getElementById('createArea').style.display = 'none';
+                document.getElementById('adminAlbumSection').style.display = 'none';
+                if (likedSongsUnsubscribe) likedSongsUnsubscribe();
+                if (userPlaylistsUnsubscribe) userPlaylistsUnsubscribe();
+                likedSet.clear();
+                render();
+                listenCommonAlbums();
+                loadNoticeboard();
+            } catch (error) {
+                console.error('Auth state handling failed:', error);
+            }
+        });
+    }
+
+    async function createPlaylist() {
+        const name = document.getElementById('pName').value.trim();
+        if(!name) {
+            alert('Please enter a playlist name');
+            return;
+        }
+        const accountKey = getCurrentAccountKey();
+        if(!accountKey) {
+            alert('Please login first to create a playlist');
+            return;
+        }
+        try {
+            const firstTrack = tracks && tracks.length > 0 ? tracks[0] : {
+                title: 'No Track Selected',
+                artist: 'Select a track to add',
+                duration: 0,
+                img: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=200&h=200&fit=crop'
+            };
+            
+            console.log('Creating playlist:', { name, creator: getCurrentDisplayName(), accountKey });
+            
+            const docRef = await db.collection("playlists").add({ 
+                name, 
+                creator: getCurrentDisplayName(), 
+                creatorUid: accountKey,
+                creatorAccountType: currentProfile?.provider || 'google',
+                creatorEmail: currentProfile?.email || '',
+                tracks: [firstTrack], 
+                img: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=200&h=200&fit=crop',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+            });
+            
+            console.log('Playlist created with ID:', docRef.id);
+            document.getElementById('pName').value = '';
+            alert(`Playlist "${name}" created successfully!`);
+        } catch (error) {
+            console.error('Error creating playlist:', error);
+            alert('Error creating playlist: ' + error.message);
+        }
+    }
+
+    function listenPlaylists() {
+        const accountKey = getCurrentAccountKey();
+        if (!accountKey) return;
+        
+        console.log('Starting to listen for playlists for account:', accountKey);
+        
+        if (userPlaylistsUnsubscribe) userPlaylistsUnsubscribe();
+        userPlaylistsUnsubscribe = db.collection("playlists").where("creatorUid", "==", accountKey).onSnapshot(snap => {
+            console.log('Playlists snapshot received, count:', snap.size);
+            const sidebarCon = document.getElementById('cloudPlaylists'); 
+            const mainCon = document.getElementById('userPlaylistsGrid');
+            const section = document.getElementById('userPlaylistsSection');
+            
+            if(!sidebarCon || !mainCon) return;
+            
+            sidebarCon.innerHTML = '';
+            mainCon.innerHTML = '';
+            
+            // Always make section visible for logged-in users
+            if (section) section.style.display = 'flex';
+            document.getElementById('noPlaylists').style.display = snap.size > 0 ? 'none' : 'block';
+            
+            // Convert to array and sort by createdAt descending
+            const playlists = [];
+            snap.forEach(doc => {
+                playlists.push({ id: doc.id, data: doc.data() });
+            });
+            playlists.sort((a, b) => {
+                const timeA = a.data.createdAt?.toDate?.() || new Date(0);
+                const timeB = b.data.createdAt?.toDate?.() || new Date(0);
+                return timeB - timeA;
+            });
+            
+            playlists.forEach(({ id: docId, data: p }) => {
+                const totalDuration = p.tracks ? p.tracks.reduce((sum, track) => sum + (track.duration || 0), 0) : 0;
+                const durationStr = formatDuration(totalDuration);
+                
+                // Sidebar item
+                const sidebarDiv = document.createElement('div'); 
+                sidebarDiv.className = 'nav-item';
+                sidebarDiv.innerHTML = `<span class="nav-text">📂 ${p.name}</span>`;
+                sidebarDiv.onclick = () => { 
+                    filtered = p.tracks || []; 
+                    document.getElementById('resetView').style.display = 'block';
+                    render(); 
+                };
+                sidebarCon.appendChild(sidebarDiv);
+                
+                // Main grid card
+                const mainDiv = document.createElement('div');
+                mainDiv.className = 'playlist-card';
+                const isOwner = p.creatorUid === accountKey;
+                const playlistUrl = `${window.location.origin}${window.location.pathname}?playlist=${docId}`;
+                mainDiv.innerHTML = `
+                    <img src="${p.img || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=200&h=200&fit=crop'}" alt="${p.name}">
+                    <h4>${p.name}</h4>
+                    <p style="margin: 5px 0; font-size: 13px; font-weight: 600;">${p.tracks ? p.tracks.length : 0} songs • ${durationStr}</p>
+                    <p style="margin: 0 0 15px 0; font-size: 11px; opacity: 0.7;">by ${p.creator}</p>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button onclick="loadPlaylist('${docId}')" style="width: 100%; background: var(--accent); color: white; border: none; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;">▶ Open Playlist</button>
+                        <button onclick="sharePlaylistWhatsApp('${docId}', '${escapeHtml(p.name)}', '${escapeHtml(p.creator)}')" style="width: 100%; background: #25d366; color: white; border: none; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;">💬 WhatsApp Share</button>
+                        ${isOwner ? `<button onclick="showQRCode('${docId}', '${p.name}', '${p.creator}')" style="width: 100%; background: rgba(59, 130, 246, 0.2); color: var(--accent); border: 1px solid var(--accent); padding: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: 0.2s;">📱 QR Code</button>` : ''}
+                        ${isOwner ? `<button onclick="managePlaylist('${docId}')" style="width: 100%; background: rgba(255,255,255,0.1); color: var(--text); border: 1px solid rgba(255,255,255,0.2); padding: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: 0.2s;">✏️ Manage</button>` : ''}
+                        ${isOwner ? `<button onclick="deletePlaylist('${docId}')" style="width: 100%; background: rgba(255,71,87,0.15); color: #ff9aa5; border: 1px solid rgba(255,71,87,0.25); padding: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: 0.2s;">🗑️ Delete</button>` : ''}
+                    </div>
+                `;
+                mainCon.appendChild(mainDiv);
+            });
+        }, error => {
+            console.error('Error listening to playlists:', error);
+            document.getElementById('noPlaylists').style.display = 'block';
+            document.getElementById('noPlaylists').innerHTML = 'Error loading playlists. Check console for details.';
+        });
+    }
+
+    function formatDuration(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        }
+        return `${minutes}m`;
+    }
+
+    function listenCommonAlbums() {
+        db.collection("commonAlbums").orderBy("createdAt", "desc").onSnapshot(snap => {
+            const con = document.getElementById('commonAlbums'); 
+            if(!con) return;
+            con.innerHTML = '';
+            snap.forEach(doc => {
+                const album = doc.data();
+                const div = document.createElement('div'); 
+                div.className = 'nav-item';
+                div.innerHTML = `<span class="nav-text">🎬 ${album.name}</span>`;
+                div.onclick = () => { 
+                    filtered = album.tracks; 
+                    document.getElementById('resetView').style.display = 'block';
+                    render(); 
+                };
+                con.appendChild(div);
+            });
+        });
+    }
+
+    function showAdminPanel() {
+        const modal = document.createElement('div');
+        modal.className = 'full-modal';
+        modal.innerHTML = `
+            <span class="close-modal" onclick="this.parentElement.remove()">✕</span>
+            <h1 style="font-family:'Syncopate'; font-size: 50px; color: var(--accent);">ADMIN PANEL</h1>
+            <div style="max-width: 600px; margin-top: 40px;">
+                <h3>Create Common Album</h3>
+                <input type="text" id="albumName" placeholder="Album Name" class="search-bar" style="margin: 10px 0;">
+                <input type="text" id="albumImg" placeholder="Album Cover URL" class="search-bar" style="margin: 10px 0;">
+                <button onclick="createCommonAlbum()" class="nav-item" style="background: var(--accent); color: white; margin: 10px 0;">Create Album</button>
+                
+                <h3 style="margin-top: 40px;">Noticeboard Management</h3>
+                <button onclick="createNotice()" class="nav-item" style="background: var(--accent); color: white; margin: 10px 0;">Create Notice</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+        loadTickets();
+    }
+
+    async function createCommonAlbum() {
+        const name = document.getElementById('albumName').value;
+        const img = document.getElementById('albumImg').value;
+        if(!name) return alert('Please enter album name');
+        
+        await db.collection("commonAlbums").add({ 
+            name, 
+            img: img || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=400&h=400&fit=crop',
+            tracks: [], 
+            createdAt: firebase.firestore.FieldValue.serverTimestamp() 
+        });
+        document.getElementById('albumName').value = '';
+        document.getElementById('albumImg').value = '';
+        alert('Album created! Add tracks by editing the album.');
+    }
+
+    window.onload = function() {
+        render();
+        
+
+
+        // Check for playlist parameter in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const playlistId = urlParams.get('playlist');
+        if (playlistId) {
+            loadSharedPlaylist(playlistId);
+        }
+
+        // Load noticeboard for admin
+        loadNoticeboard();
+    };
+
+    async function loadSharedPlaylist(playlistId) {
+        try {
+            const doc = await db.collection("playlists").doc(playlistId).get();
+            if (doc.exists) {
+                const playlist = doc.data();
+                filtered = playlist.tracks || [];
+                
+                // Hide playlist grid and show tracks prominently
+                const grid = document.getElementById('userPlaylistsGrid');
+                const browseSection = document.getElementById('browseTracksSection');
+                
+                if (grid) grid.style.display = 'none';
+                if (browseSection) browseSection.style.display = 'block';
+                
+                // Calculate duration
+                const totalDuration = filtered.reduce((sum, track) => sum + (track.duration || 0), 0);
+                const hours = Math.floor(totalDuration / 3600);
+                const minutes = Math.floor((totalDuration % 3600) / 60);
+                const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                
+                // Update playlist info
+                document.getElementById('playlistTitle').innerHTML = `📂 ${playlist.name}`;
+                document.getElementById('playlistInfo').innerHTML = `${filtered.length} songs • ${durationStr} • by ${playlist.creator}`;
+                
+                document.getElementById('resetView').style.display = 'block';
+                render();
+            } else {
+                alert('Playlist not found');
+            }
+        } catch (error) {
+            console.error('Error loading playlist:', error);
+            alert('Error loading playlist');
+        }
+    }
+
+    function cleanTitle(title) {
+        // Remove track codes from title
+        return title.replace(/^[^-]*-\s*/, '').replace(/\s*\([^)]*\)$/, '');
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+        document.getElementById(tabName + 'Content').classList.add('active');
+    }
+
+    function openTicketChat() {
+        document.getElementById('ticketChatModal').style.display = 'flex';
+        loadUserTickets();
+    }
+
+    async function loadUserTickets() {
+        const accountKey = getCurrentAccountKey();
+        if (!accountKey) return;
+
+        const select = document.getElementById('activeTicket');
+        select.innerHTML = '<option value="">Select a ticket...</option>';
+
+        try {
+            const snapshot = await db.collection("tickets")
+                .where("userId", "==", accountKey)
+                .orderBy("createdAt", "desc")
+                .get();
+
+            snapshot.forEach(doc => {
+                const ticket = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = `${ticket.ticketNumber} - ${ticket.subject} [${formatTicketStatus(ticket.status)}]`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading tickets:', error);
+        }
+    }
+
+    async function loadTicketChat() {
+        const ticketId = document.getElementById('activeTicket').value;
+        if (!ticketId) {
+            document.getElementById('chatContainer').style.display = 'none';
+            return;
+        }
+
+        try {
+            const doc = await db.collection("tickets").doc(ticketId).get();
+            if (doc.exists) {
+                const ticket = doc.data();
+                document.getElementById('chatTicketNumber').textContent = ticket.ticketNumber;
+                document.getElementById('chatSubject').textContent = ticket.subject;
+                const launched = formatTicketMoment(ticket.launchedAt || ticket.createdAt);
+                const closed = ticket.closedAt ? ` | Closed: ${formatTicketMoment(ticket.closedAt)}` : '';
+                document.getElementById('chatStatus').textContent = `Status: ${formatTicketStatus(ticket.status)} | Launched: ${launched}${closed}`;
+
+                loadMessages(ticketId);
+                document.getElementById('chatContainer').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error loading ticket:', error);
+        }
+    }
+
+    function loadMessages(ticketId) {
+        const messagesContainer = document.getElementById('chatMessages');
+        messagesContainer.innerHTML = '';
+
+        db.collection("tickets").doc(ticketId).onSnapshot(doc => {
+            if (doc.exists) {
+                const ticket = doc.data();
+                messagesContainer.innerHTML = '';
+
+                if (ticket.messages) {
+                    ticket.messages.forEach(msg => {
+                        const msgDiv = document.createElement('div');
+                        msgDiv.style.cssText = `
+                            margin: 10px 0;
+                            padding: 10px 15px;
+                            border-radius: 15px;
+                            max-width: 70%;
+                            ${msg.from === 'user' ?
+                                'background: var(--accent); color: white; margin-left: auto; border-bottom-right-radius: 5px;' :
+                                'background: rgba(255,255,255,0.1); color: var(--text); margin-right: auto; border-bottom-left-radius: 5px;'
+                            }
+                        `;
+                        msgDiv.innerHTML = `
+                            <div style="font-size: 12px; opacity: 0.7; margin-bottom: 5px;">${msg.from === 'user' ? 'You' : 'Support'}</div>
+                            <div>${msg.text}</div>
+                            <div style="font-size: 10px; opacity: 0.5; margin-top: 5px;">${new Date(msg.timestamp?.toDate?.() || msg.timestamp).toLocaleString()}</div>
+                        `;
+                        messagesContainer.appendChild(msgDiv);
+                    });
+                }
+
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        });
+    }
+
+    async function sendMessage() {
+        const ticketId = document.getElementById('activeTicket').value;
+        const messageText = document.getElementById('newMessage').value.trim();
+
+        if (!ticketId || !messageText) return;
+
+        try {
+            const message = {
+                text: messageText,
+                from: 'user',
+                timestamp: new Date().toISOString()
+            };
+
+            await db.collection("tickets").doc(ticketId).update({
+                messages: firebase.firestore.FieldValue.arrayUnion(message),
+                status: 'ongoing',
+                closedAt: null
+            });
+
+            document.getElementById('newMessage').value = '';
+        } catch (error) {
+            console.error('Error sending message:', error);
+        }
+    }
+
+    function loadPlaylist(playlistId) {
+        loadSharedPlaylist(playlistId);
+    }
+
+    async function managePlaylist(playlistId) {
+        // Open playlist management modal
+        const modal = document.createElement('div');
+        modal.className = 'full-modal';
+        modal.innerHTML = `
+            <span class="close-modal" onclick="this.parentElement.remove()">✕</span>
+            <h1 style="font-family:'Syncopate'; font-size: 50px; color: var(--accent);">MANAGE PLAYLIST</h1>
+            <div style="max-width: 600px; margin-top: 40px;">
+                <div id="playlistTracks"></div>
+                <button onclick="addTrackToPlaylist('${playlistId}')" class="nav-item" style="background: var(--accent); color: white; margin: 20px 0; width: 100%;">Add Current Track</button>
+                <button onclick="showQRCode('${playlistId}', '', '')" class="nav-item" style="background: rgba(255,255,255,0.1); color: var(--text); margin: 10px 0; width: 100%;">Generate QR Code</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+
+        // Load playlist tracks
+        try {
+            const doc = await db.collection("playlists").doc(playlistId).get();
+            if (doc.exists) {
+                const playlist = doc.data();
+                const tracksContainer = document.getElementById('playlistTracks');
+
+                if (playlist.tracks && playlist.tracks.length > 0) {
+                    playlist.tracks.forEach((track, index) => {
+                        const trackDiv = document.createElement('div');
+                        trackDiv.style.cssText = 'display: flex; align-items: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 5px 0;';
+                        trackDiv.innerHTML = `
+                            <img src="${track.img}" style="width: 40px; height: 40px; border-radius: 8px; margin-right: 15px; object-fit: cover;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600;">${cleanTitle(track.title)}</div>
+                                <div style="font-size: 12px; opacity: 0.7;">${track.artist}</div>
+                            </div>
+                            <button onclick="removeTrackFromPlaylist('${playlistId}', ${index})" style="background: #ff4757; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Remove</button>
+                        `;
+                        tracksContainer.appendChild(trackDiv);
+                    });
+                } else {
+                    tracksContainer.innerHTML = '<p style="text-align: center; opacity: 0.6;">No tracks in this playlist yet.</p>';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading playlist:', error);
+        }
+    }
+
+    async function addTrackToPlaylist(playlistId) {
+        if (!currentTrack) {
+            alert('No track is currently playing');
+            return;
+        }
+
+        try {
+            await db.collection("playlists").doc(playlistId).update({
+                tracks: firebase.firestore.FieldValue.arrayUnion(currentTrack)
+            });
+            alert('Track added to playlist!');
+        } catch (error) {
+            console.error('Error adding track:', error);
+            alert('Error adding track to playlist');
+        }
+    }
+
+    async function removeTrackFromPlaylist(playlistId, trackIndex) {
+        try {
+            const doc = await db.collection("playlists").doc(playlistId).get();
+            if (doc.exists) {
+                const playlist = doc.data();
+                const updatedTracks = [...playlist.tracks];
+                updatedTracks.splice(trackIndex, 1);
+
+                await db.collection("playlists").doc(playlistId).update({
+                    tracks: updatedTracks
+                });
+            }
+        } catch (error) {
+            console.error('Error removing track:', error);
+        }
+    }
+
+    async function showQRCode(playlistId, name, creator) {
+        try {
+            const doc = await db.collection("playlists").doc(playlistId).get();
+            if (doc.exists) {
+                const playlist = doc.data();
+                const totalDuration = playlist.tracks ? playlist.tracks.reduce((sum, track) => sum + (track.duration || 0), 0) : 0;
+
+                document.getElementById('qrPlaylistName').textContent = playlist.name;
+                document.getElementById('qrSongCount').textContent = `${playlist.tracks ? playlist.tracks.length : 0} songs`;
+                document.getElementById('qrDuration').textContent = formatDuration(totalDuration);
+                document.getElementById('qrCreator').textContent = `Created by ${playlist.creator}`;
+
+                const shareUrl = `${window.location.origin}${window.location.pathname}?playlist=${playlistId}`;
+                
+                // Display share URL
+                document.getElementById('playlistShareUrl').value = shareUrl;
+
+                const qrContainer = document.getElementById('qrcode');
+                qrContainer.innerHTML = '';
+
+                try {
+                    // Use QRCode library with proper canvas creation
+                    const canvas = document.createElement('canvas');
+                    QRCode.toCanvas(canvas, shareUrl, {
+                        width: 256,
+                        height: 256,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    }, function (error) {
+                        if (error) {
+                            console.error('QR Code error:', error);
+                            qrContainer.innerHTML = '<p style="color: #ff4757;">QR Code generation failed</p>';
+                        } else {
+                            qrContainer.innerHTML = '';
+                            qrContainer.appendChild(canvas);
+                        }
+                    });
+                } catch (err) {
+                    console.error('QR Code exception:', err);
+                    qrContainer.innerHTML = '<p style="color: #ff4757;">QR Code generation failed</p>';
+                }
+
+                document.getElementById('qrModal').style.display = 'flex';
+            }
+        } catch (error) {
+            console.error('Error loading playlist for QR:', error);
+        }
+    }
+
+    function downloadQR() {
+        const canvas = document.querySelector('#qrcode canvas');
+        if (canvas) {
+            const link = document.createElement('a');
+            link.download = 'playlist-qr.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    }
+
+    function copyShareLink() {
+        const urlInput = document.getElementById('playlistShareUrl');
+        if (urlInput) {
+            urlInput.select();
+            document.execCommand('copy');
+            alert('Link copied to clipboard!');
+        }
+    }
+
+    async function deletePlaylist(playlistId) {
+        if (!confirm('Are you sure you want to delete this playlist? This action cannot be undone.')) {
+            return;
+        }
+
+        if (!auth.currentUser) {
+            alert('Please login first');
+            return;
+        }
+
+        try {
+            // Verify ownership before deleting
+            const doc = await db.collection("playlists").doc(playlistId).get();
+            if (!doc.exists) {
+                alert('Playlist not found');
+                return;
+            }
+
+            const playlist = doc.data();
+            if (playlist.creatorUid !== accountKey && !isAdminUser()) {
+                alert('Only the playlist owner or headquarters admin can delete this playlist');
+                return;
+            }
+
+            await db.collection("playlists").doc(playlistId).delete();
+            alert('Playlist deleted successfully!');
+            // Reload playlists
+            listenPlaylists();
+        } catch (error) {
+            console.error('Error deleting playlist:', error);
+            alert('Error deleting playlist: ' + error.message);
+        }
+    }
+
+
+    function loadNoticeboard() {
+        if (!auth.currentUser || auth.currentUser.email !== ADMIN_EMAIL) return;
+
+        db.collection("notices").orderBy("createdAt", "desc").onSnapshot(snap => {
+            const container = document.getElementById('noticeboardItems');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            if (snap.size === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.6;">No notices yet.</p>';
+                return;
+            }
+
+            snap.forEach(doc => {
+                const notice = doc.data();
+                const noticeDiv = document.createElement('div');
+                noticeDiv.className = 'notice-item';
+                noticeDiv.innerHTML = `
+                    <h4>${notice.title}</h4>
+                    <div class="date">${new Date(notice.createdAt?.toDate?.() || notice.createdAt).toLocaleDateString()}</div>
+                    <p>${notice.content}</p>
+                    <div style="margin-top: 15px;">
+                        <button onclick="editNotice('${doc.id}')" style="background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 5px; margin-right: 10px; cursor: pointer;">Edit</button>
+                        <button onclick="deleteNotice('${doc.id}')" style="background: #ff4757; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Delete</button>
+                    </div>
+                `;
+                container.appendChild(noticeDiv);
+            });
+        });
+    }
+
+    async function createNotice() {
+        const title = prompt('Notice Title:');
+        const content = prompt('Notice Content:');
+
+        if (title && content) {
+            await db.collection("notices").add({
+                title,
+                content,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    }
+
+    async function editNotice(noticeId) {
+        const title = prompt('New Title:');
+        const content = prompt('New Content:');
+
+        if (title && content) {
+            await db.collection("notices").doc(noticeId).update({
+                title,
+                content
+            });
+        }
+    }
+
+    async function deleteNotice(noticeId) {
+        if (confirm('Delete this notice?')) {
+            await db.collection("notices").doc(noticeId).delete();
+        }
+    }
+
+    function renderLibraryTracksForPlaylist() {
+        const container = document.getElementById('libraryTracks');
+        if (!container) return;
+
+        const query = (document.getElementById('playlistSongSearch')?.value || '').toLowerCase().trim();
+        const list = tracks
+            .map((track, index) => ({ track, index }))
+            .filter(({ track }) => !query || `${track.title} ${track.artist}`.toLowerCase().includes(query))
+            .slice(0, 12);
+
+        if (list.length === 0) {
+            container.innerHTML = '<div class="empty-state" style="min-height: 140px;">No matching songs found in the Axtra library.</div>';
+            return;
+        }
+
+        container.innerHTML = list.map(({ track, index }) => `
+            <div class="library-track">
+                <img src="${escapeHtml(track.img || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=200&h=200&fit=crop')}" alt="${escapeHtml(track.title || 'Track cover')}">
+                <div>
+                    <div style="font-weight:700; margin-bottom:3px;">${escapeHtml(cleanTitle(track.title || 'Untitled Track'))}</div>
+                    <div style="font-size:12px; opacity:0.65;">${escapeHtml(track.artist || 'Unknown Artist')}</div>
+                </div>
+                <button class="action-btn primary-btn" type="button" onclick="addLibraryTrackToPlaylist(${index})">Add</button>
+            </div>
+        `).join('');
+    }
+
+    async function addLibraryTrackToPlaylist(trackIndex) {
+        if (!currentManagedPlaylistId) return;
+        const selectedTrack = tracks[trackIndex];
+        if (!selectedTrack) return;
+
+        try {
+            await db.collection("playlists").doc(currentManagedPlaylistId).update({
+                tracks: firebase.firestore.FieldValue.arrayUnion(normalizeTrack(selectedTrack))
+            });
+            alert('Song added to playlist.');
+            managePlaylist(currentManagedPlaylistId);
+        } catch (error) {
+            console.error('Error adding library track:', error);
+            alert('Error adding song to playlist');
+        }
+    }
+
+    async function submitCustomSong(event, playlistId) {
+        event.preventDefault();
+
+        const title = document.getElementById('customSongTitle')?.value.trim();
+        const artist = document.getElementById('customSongArtist')?.value.trim();
+        const url = document.getElementById('customSongUrl')?.value.trim();
+        const img = document.getElementById('customSongImg')?.value.trim();
+        const cmd = document.getElementById('customSongCode')?.value.trim();
+        const duration = document.getElementById('customSongDuration')?.value.trim();
+
+        if (!title || !artist || !url) {
+            alert('Please fill in song title, artist, and audio URL.');
+            return;
+        }
+
+        try {
+            await db.collection("playlists").doc(playlistId).update({
+                tracks: firebase.firestore.FieldValue.arrayUnion(normalizeTrack({
+                    title,
+                    artist,
+                    url,
+                    img,
+                    cmd,
+                    duration
+                }))
+            });
+
+            ['customSongTitle', 'customSongArtist', 'customSongUrl', 'customSongImg', 'customSongCode', 'customSongDuration'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+
+            alert('Custom song added successfully.');
+            managePlaylist(playlistId);
+        } catch (error) {
+            console.error('Error adding custom song:', error);
+            alert('Error adding custom song');
+        }
+    }
+
+    async function managePlaylist(playlistId) {
+        currentManagedPlaylistId = playlistId;
+        document.querySelectorAll('.full-modal').forEach(modal => {
+            if (modal.querySelector('#playlistTracks')) modal.remove();
+        });
+
+        const modal = document.createElement('div');
+        modal.className = 'full-modal';
+        modal.innerHTML = `
+            <span class="close-modal" onclick="this.parentElement.remove()">âœ•</span>
+            <h1 style="font-family:'Syncopate'; font-size: 50px; color: var(--accent);">MANAGE PLAYLIST</h1>
+            <div class="manager-layout">
+                <div class="manager-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3 style="margin:0;">Playlist Songs</h3>
+                            <p style="margin:6px 0 0;">Add, review, and remove songs from one clean space.</p>
+                        </div>
+                        <button onclick="showQRCode('${playlistId}', '', '')" class="secondary-btn" type="button">Generate QR</button>
+                    </div>
+                    <div id="playlistTracks" class="manager-list"></div>
+                </div>
+                <div class="song-picker">
+                    <div class="manager-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3 style="margin:0;">Add From Library</h3>
+                                <p style="margin:6px 0 0;">Search songs that already exist in Axtra.</p>
+                            </div>
+                        </div>
+                        <input id="playlistSongSearch" class="composer-input" type="text" placeholder="Search title or artist..." oninput="renderLibraryTracksForPlaylist()">
+                        <div id="libraryTracks" class="library-results" style="margin-top:14px;"></div>
+                        <button onclick="addTrackToPlaylist('${playlistId}')" class="secondary-btn" type="button" style="margin-top:14px; width:100%;">Add Current Playing Track</button>
+                    </div>
+                    <div class="or-divider">or</div>
+                    <div class="manager-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3 style="margin:0;">Add Custom Song</h3>
+                                <p style="margin:6px 0 0;">Paste your own audio URL and cover image.</p>
+                            </div>
+                        </div>
+                        <form onsubmit="submitCustomSong(event, '${playlistId}')">
+                            <div class="form-grid">
+                                <div class="field-group">
+                                    <label for="customSongTitle">Song Title</label>
+                                    <input id="customSongTitle" class="composer-input" type="text" placeholder="Midnight Session">
+                                </div>
+                                <div class="field-group">
+                                    <label for="customSongArtist">Artist</label>
+                                    <input id="customSongArtist" class="composer-input" type="text" placeholder="Axtra Originals">
+                                </div>
+                                <div class="field-group full">
+                                    <label for="customSongUrl">Audio URL</label>
+                                    <input id="customSongUrl" class="composer-input" type="url" placeholder="https://example.com/song.mp3">
+                                </div>
+                                <div class="field-group full">
+                                    <label for="customSongImg">Cover Image URL</label>
+                                    <input id="customSongImg" class="composer-input" type="url" placeholder="https://example.com/cover.jpg">
+                                </div>
+                                <div class="field-group">
+                                    <label for="customSongCode">Track Code</label>
+                                    <input id="customSongCode" class="composer-input" type="text" placeholder="axeng13 or axhin6">
+                                </div>
+                                <div class="field-group">
+                                    <label for="customSongDuration">Duration (seconds)</label>
+                                    <input id="customSongDuration" class="composer-input" type="number" min="0" placeholder="215">
+                                </div>
+                            </div>
+                            <button class="primary-btn" style="margin-top:18px;" type="submit">Add Song To Playlist</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+        const modalClose = modal.querySelector('.close-modal');
+        if (modalClose) modalClose.textContent = 'X';
+        renderLibraryTracksForPlaylist();
+
+        try {
+            const doc = await db.collection("playlists").doc(playlistId).get();
+            if (doc.exists) {
+                const playlist = doc.data();
+                const tracksContainer = document.getElementById('playlistTracks');
+
+                if (playlist.tracks && playlist.tracks.length > 0) {
+                    tracksContainer.innerHTML = playlist.tracks.map((track, index) => `
+                        <div class="manager-track">
+                            <img src="${escapeHtml(track.img || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=200&h=200&fit=crop')}" alt="${escapeHtml(track.title || 'Track cover')}">
+                            <div>
+                                <h4>${escapeHtml(cleanTitle(track.title || 'Untitled Track'))}</h4>
+                                <p>${escapeHtml(track.artist || 'Unknown Artist')}</p>
+                            </div>
+                            <button onclick="removeTrackFromPlaylist('${playlistId}', ${index})" class="action-btn danger-btn" type="button">Remove</button>
+                        </div>
+                    `).join('');
+                } else {
+                    tracksContainer.innerHTML = '<div class="empty-state">No songs in this playlist yet.<br>Use the library search or custom song form to add your first one.</div>';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading playlist:', error);
+        }
+    }
+
+    async function addTrackToPlaylist(playlistId) {
+        if (!currentTrack) {
+            alert('No track is currently playing');
+            return;
+        }
+
+        try {
+            await db.collection("playlists").doc(playlistId).update({
+                tracks: firebase.firestore.FieldValue.arrayUnion(normalizeTrack(currentTrack))
+            });
+            alert('Track added to playlist!');
+            managePlaylist(playlistId);
+        } catch (error) {
+            console.error('Error adding track:', error);
+            alert('Error adding track to playlist');
+        }
+    }
+
+    function resetNoticeForm() {
+        const form = document.getElementById('noticeForm');
+        if (form) form.reset();
+        const hidden = document.getElementById('editingNoticeId');
+        const submitBtn = document.getElementById('noticeSubmitBtn');
+        const cancelBtn = document.getElementById('noticeCancelBtn');
+        if (hidden) hidden.value = '';
+        if (submitBtn) submitBtn.textContent = 'Publish Notice';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+    }
+
+    async function submitNotice(event) {
+        event.preventDefault();
+        if (!isAdminUser()) {
+            alert(`Only ${ADMIN_EMAIL} can publish notices.`);
+            return;
+        }
+
+        const title = document.getElementById('noticeTitleInput')?.value.trim();
+        const content = document.getElementById('noticeContentInput')?.value.trim();
+        const editingId = document.getElementById('editingNoticeId')?.value.trim();
+
+        if (!title || !content) {
+            alert('Please enter both a title and the notice content.');
+            return;
+        }
+
+        try {
+            if (editingId) {
+                await db.collection("notices").doc(editingId).update({
+                    title,
+                    content,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } else {
+                await db.collection("notices").add({
+                    title,
+                    content,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            resetNoticeForm();
+        } catch (error) {
+            console.error('Error saving notice:', error);
+            alert('Error saving notice');
+        }
+    }
+
+    async function createNotice() {
+        switchTab('noticeboard');
+        document.getElementById('noticeTitleInput')?.focus();
+    }
+
+    async function editNotice(noticeId) {
+        if (!isAdminUser()) return;
+        try {
+            const doc = await db.collection("notices").doc(noticeId).get();
+            if (!doc.exists) return;
+            const notice = doc.data();
+            switchTab('noticeboard');
+            document.getElementById('noticeTitleInput').value = notice.title || '';
+            document.getElementById('noticeContentInput').value = notice.content || '';
+            document.getElementById('editingNoticeId').value = noticeId;
+            document.getElementById('noticeSubmitBtn').textContent = 'Save Changes';
+            document.getElementById('noticeCancelBtn').style.display = 'inline-flex';
+            document.getElementById('noticeTitleInput').focus();
+        } catch (error) {
+            console.error('Error loading notice for edit:', error);
+            alert('Error opening notice editor');
+        }
+    }
+
+    async function deleteNotice(noticeId) {
+        if (!isAdminUser()) return;
+        if (confirm('Delete this notice?')) {
+            await db.collection("notices").doc(noticeId).delete();
+        }
+    }
+
+    function loadNoticeboard() {
+        if (noticeboardUnsubscribe) noticeboardUnsubscribe();
+        noticeboardUnsubscribe = db.collection("notices").orderBy("createdAt", "desc").onSnapshot(snap => {
+            const container = document.getElementById('noticeboardItems');
+            if (!container) return;
+
+            const noticeCount = document.getElementById('noticeCount');
+            const latestNoticeDate = document.getElementById('latestNoticeDate');
+            const isAdmin = isAdminUser();
+            const form = document.getElementById('noticeForm');
+            const badge = document.getElementById('noticeAdminBadge');
+            const hint = document.getElementById('noticeComposerHint');
+
+            container.innerHTML = '';
+            if (noticeCount) noticeCount.textContent = String(snap.size);
+            if (latestNoticeDate) latestNoticeDate.textContent = snap.size > 0 ? getNoticeDateLabel(snap.docs[0].data().createdAt) : '-';
+            if (badge) badge.style.display = isAdmin ? 'inline-flex' : 'none';
+            if (hint) {
+                hint.textContent = isAdmin
+                    ? 'Admin mode is active. Publish a new notice or edit an existing one.'
+                    : 'Sign in to post notices. Only admins can publish.';
+            }
+            if (form) {
+                const submitBtn = form.querySelector('[type="submit"]');
+                if (submitBtn) submitBtn.disabled = !isAdmin;
+                form.querySelectorAll('input, textarea').forEach(el => {
+                    el.disabled = !isAdmin;
+                });
+                const cancelBtn = document.getElementById('noticeCancelBtn');
+                if (cancelBtn && !isAdmin) cancelBtn.style.display = 'none';
+            }
+
+            if (snap.size === 0) {
+                container.innerHTML = '<div class="empty-state">No notices have been posted yet.<br>The next team update will appear here.</div>';
+                return;
+            }
+
+            snap.forEach(doc => {
+                const notice = doc.data();
+                const noticeDiv = document.createElement('div');
+                noticeDiv.className = 'notice-item';
+                noticeDiv.innerHTML = `
+                    <div class="notice-meta">
+                        <span class="notice-pill">Studio Notice</span>
+                        <span class="notice-date">${escapeHtml(getNoticeDateLabel(notice.createdAt))}</span>
+                    </div>
+                    <h4>${escapeHtml(notice.title || 'Untitled Notice')}</h4>
+                    <p>${escapeHtml(notice.content || '')}</p>
+                    ${isAdmin ? `
+                        <div class="notice-actions">
+                            <button onclick="editNotice('${doc.id}')" class="action-btn secondary-btn" type="button">Edit</button>
+                            <button onclick="deleteNotice('${doc.id}')" class="action-btn danger-btn" type="button">Delete</button>
+                        </div>
+                    ` : ''}
+                `;
+                container.appendChild(noticeDiv);
+            });
+        });
+    }
+
+    // Helper Functions
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function normalizeTrack(track) {
+        return {
+            title: track.title || 'Untitled Track',
+            artist: track.artist || 'Unknown Artist',
+            url: track.url || '',
+            img: track.img || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=200&h=200&fit=crop',
+            cmd: track.cmd || '',
+            duration: track.duration || 0
+        };
+    }
+
+    function generateTicketNumber(date = new Date()) {
+        const dateStamp = [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0')
+        ].join('');
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let letters = '';
+        for (let i = 0; i < 4; i += 1) {
+            letters += alphabet[Math.floor(Math.random() * alphabet.length)];
+        }
+        return `AXTICKET-${dateStamp}${letters}`;
+    }
+
+    async function fetchTicketByCode(ticketCode) {
+        const snapshot = await db.collection("tickets")
+            .where("ticketLookup", "==", ticketCode.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (snapshot.empty) return null;
+        return snapshot.docs[0].data();
+    }
+
+    function formatTicketStatus(status) {
+        if (!status) return 'Ongoing';
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    function formatTicketMoment(timestamp) {
+        if (!timestamp) return 'Unknown';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        if (Number.isNaN(date.getTime())) return 'Unknown';
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    }
+
+    function isAdminUser() {
+        return auth.currentUser && auth.currentUser.email === ADMIN_EMAIL;
+    }
+
+    function getNoticeDateLabel(timestamp) {
+        if (!timestamp) return 'Today';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (date.toDateString() === today.toDateString()) return 'Today';
+        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+        const options = { month: 'short', day: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+    }
+</script>
+</body>
+</html>
+ 

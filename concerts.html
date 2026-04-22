@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axtra Live | Concerts & Tours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: rgba(255, 255, 255, 0.02);
+            --accent: #ff3e3e; /* Electric Red for Concerts */
+            --text: #ffffff;
+            --text-dim: #a1a1a1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: var(--bg); color: var(--text); 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            min-height: 100vh;
+        }
+
+        .container { padding: 60px 40px; max-width: 1200px; margin: 0 auto; }
+
+        /* LIVE CONCERT TICKET STYLE */
+        .concert-list { margin-top: 40px; }
+        
+        .ticket {
+            display: flex;
+            background: var(--panel);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .ticket:hover { transform: scale(1.02); border-color: var(--accent); }
+
+        .ticket-date {
+            background: var(--accent);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+            font-weight: 800;
+        }
+
+        .ticket-content { padding: 30px; flex-grow: 1; }
+        .ticket-content h2 { font-family: 'Syncopate'; font-size: 22px; margin-bottom: 5px; }
+        .ticket-content p { font-size: 14px; color: var(--text-dim); }
+
+        .ticket-action {
+            padding: 30px;
+            border-left: 2px dashed rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* MODAL POPUP */
+        #concertModal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            display: none; align-items: center; justify-content: center; z-index: 9999;
+        }
+
+        .modal-box {
+            background: #111; width: 90%; max-width: 800px;
+            border-radius: 30px; overflow: hidden; border: 1px solid var(--accent);
+        }
+
+        .modal-img { width: 100%; height: 300px; background-size: cover; background-position: center; }
+
+        /* ADMIN ACCESS */
+        .admin-btn {
+            position: fixed; bottom: 30px; right: 30px;
+            background: var(--accent); color: white; border: none;
+            width: 60px; height: 60px; border-radius: 50%; font-size: 24px;
+            cursor: pointer; box-shadow: 0 0 20px rgba(255, 62, 62, 0.4);
+            display: none;
+        }
+
+        .glass-input {
+            width: 100%; padding: 12px; background: #222; border: 1px solid #333;
+            color: white; border-radius: 10px; margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header style="text-align: center; margin-bottom: 80px;">
+        <h1 style="font-family: 'Syncopate'; font-size: 50px; letter-spacing: -2px;">LIVE <span style="color:var(--accent)">CONCERTS</span></h1>
+        <p style="opacity:0.5">Experience the energy live on stage</p>
+    </header>
+
+    <div id="concertContainer" class="concert-list">
+        </div>
+</div>
+
+<div id="concertModal" onclick="this.style.display='none'">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div id="cImg" class="modal-img"></div>
+        <div style="padding: 40px;">
+            <h1 id="cTitle" style="font-family: 'Syncopate';"></h1>
+            <p id="cArtist" style="color:var(--accent); font-weight: 800; margin-bottom: 20px;"></p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div><strong>LOCATION:</strong> <p id="cLoc"></p></div>
+                <div><strong>GENRE:</strong> <p id="cGenre"></p></div>
+                <div><strong>DATE:</strong> <p id="cDate"></p></div>
+                <div><strong>LANGUAGE:</strong> <p id="cLang"></p></div>
+            </div>
+            <button onclick="document.getElementById('concertModal').style.display='none'" class="glass-input" style="margin-top: 30px; background: var(--accent); cursor: pointer;">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+<div id="adminForm" style="display:none; position: fixed; inset:0; background: rgba(0,0,0,0.9); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: #111; padding: 40px; border-radius: 20px; width: 400px;">
+        <h2 style="margin-bottom: 20px;">Add New Concert</h2>
+        <input id="inTitle" placeholder="Concert Tour Name" class="glass-input">
+        <input id="inArtist" placeholder="Artist Name" class="glass-input">
+        <input id="inLoc" placeholder="Venue/City" class="glass-input">
+        <input id="inGenre" placeholder="Music Genre" class="glass-input">
+        <input id="inLang" placeholder="Language" class="glass-input">
+        <input id="inBanner" placeholder="Banner Image URL" class="glass-input">
+        <input type="datetime-local" id="inDate" class="glass-input">
+        <button onclick="saveConcert()" class="glass-input" style="background: var(--accent); font-weight: 800; cursor: pointer;">POST CONCERT</button>
+        <button onclick="document.getElementById('adminForm').style.display='none'" style="width:100%; color:gray; background:none; border:none;">Cancel</button>
+    </div>
+</div>
+
+<button class="admin-btn" id="adminFab" onclick="verifyAdmin()">+</button>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC7I_pBRrcLV6sCZzWO4_RmBIrZLoWhXfk",
+      authDomain: "axtraplatforms.firebaseapp.com",
+      projectId: "axtraplatforms",
+      storageBucket: "axtraplatforms.firebasestorage.app",
+      messagingSenderId: "764125379196",
+      appId: "1:764125379196:web:5465fa0c1a4a87a6fda7f9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    const MASTER_KEY = "cxliveconcerts"; // Your admin password
+
+    auth.onAuthStateChanged(user => {
+        if(user && user.email === 'satyam.nigam2011@gmail.com') { 
+            document.getElementById('adminFab').style.display = 'block';
+        }
+        loadConcerts();
+    });
+
+    function verifyAdmin() {
+        if(prompt("Admin Key:") === MASTER_KEY) document.getElementById('adminForm').style.display = 'flex';
+    }
+
+    async function saveConcert() {
+        const data = {
+            title: document.getElementById('inTitle').value,
+            artist: document.getElementById('inArtist').value,
+            loc: document.getElementById('inLoc').value,
+            genre: document.getElementById('inGenre').value,
+            lang: document.getElementById('inLang').value,
+            banner: document.getElementById('inBanner').value || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=800',
+            date: document.getElementById('inDate').value
+        };
+        await db.collection("concerts").add(data);
+        location.reload();
+    }
+
+    function loadConcerts() {
+        db.collection("concerts").orderBy("date", "asc").onSnapshot(snap => {
+            const container = document.getElementById('concertContainer');
+            container.innerHTML = '';
+            const now = new Date();
+
+            snap.forEach(doc => {
+                const c = doc.data();
+                const cDate = new Date(c.date);
+
+                if(cDate < now) {
+                    db.collection("concerts").doc(doc.id).delete();
+                    return;
+                }
+
+                const ticket = document.createElement('div');
+                ticket.className = 'ticket';
+                ticket.onclick = () => {
+                    document.getElementById('cTitle').innerText = c.title;
+                    document.getElementById('cArtist').innerText = c.artist;
+                    document.getElementById('cLoc').innerText = c.loc;
+                    document.getElementById('cGenre').innerText = c.genre;
+                    document.getElementById('cDate').innerText = cDate.toLocaleString();
+                    document.getElementById('cLang').innerText = c.lang;
+                    document.getElementById('cImg').style.backgroundImage = `url('${c.banner}')`;
+                    document.getElementById('concertModal').style.display = 'flex';
+                };
+
+                ticket.innerHTML = `
+                    <div class="ticket-date">
+                        <span style="font-size:24px">${cDate.getDate()}</span>
+                        <span>${cDate.toLocaleString('default', { month: 'short' })}</span>
+                    </div>
+                    <div class="ticket-content">
+                        <h2>${c.title}</h2>
+                        <p>${c.artist} • ${c.loc}</p>
+                    </div>
+                    <div class="ticket-action">
+                        <span style="color:var(--accent); font-weight:800; font-size:12px;">VIEW PASS</span>
+                    </div>
+                `;
+                container.appendChild(ticket);
+            });
+        });
+    }
+</script>
+</body>
+</html>

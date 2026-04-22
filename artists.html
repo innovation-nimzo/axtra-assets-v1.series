@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axtra Artists | Record Label Gallery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #080808;
+            --panel: #111111;
+            --accent: #00f2ff; /* Neon Cyan for Artists */
+            --text: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: var(--bg); color: var(--text); 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            overflow-x: hidden;
+        }
+
+        .container { padding: 60px 40px; max-width: 1400px; margin: 0 auto; }
+
+        /* ARTIST GRID */
+        .artist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 50px;
+        }
+
+        .artist-card {
+            position: relative;
+            height: 450px;
+            border-radius: 30px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+        }
+
+        .artist-card:hover { transform: scale(1.02); border-color: var(--accent); }
+
+        .artist-img {
+            width: 100%; height: 100%;
+            background-size: cover; background-position: center;
+            transition: 0.5s;
+        }
+
+        .artist-card:hover .artist-img { transform: scale(1.1); filter: brightness(0.4); }
+
+        .artist-info {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            padding: 30px; background: linear-gradient(transparent, rgba(0,0,0,0.9));
+        }
+
+        .artist-info h2 { font-family: 'Syncopate'; font-size: 24px; text-transform: uppercase; }
+
+        /* ALBUM MODAL */
+        #albumModal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.98);
+            display: none; flex-direction: column; align-items: center; 
+            padding: 60px; z-index: 9999; overflow-y: auto;
+        }
+
+        .album-row {
+            display: flex; gap: 20px; overflow-x: auto; padding: 20px 0;
+            width: 100%; max-width: 1100px;
+        }
+
+        .album-item {
+            min-width: 200px; text-align: center;
+        }
+
+        .album-art {
+            width: 200px; height: 200px; border-radius: 15px;
+            background-size: cover; margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* ADMIN ELEMENTS */
+        .admin-fab {
+            position: fixed; bottom: 40px; right: 40px;
+            background: var(--accent); color: black; border: none;
+            padding: 15px 30px; border-radius: 50px; font-weight: 800;
+            cursor: pointer; display: none; z-index: 100;
+        }
+
+        .glass-input {
+            width: 100%; padding: 12px; background: #222; border: 1px solid #333;
+            color: white; border-radius: 10px; margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 style="font-family: 'Syncopate'; font-size: 40px;">THE <span style="color:var(--accent)">ROSTER</span></h1>
+            <p style="opacity: 0.5;">Artists- Under Development</p>
+        </div>
+        <a href="index.html" style="color: var(--accent); text-decoration: none; font-weight: 800;">← STUDIO</a>
+    </header>
+
+    <div class="artist-grid" id="artistGrid">
+        </div>
+</div>
+
+<div id="albumModal">
+    <button onclick="document.getElementById('albumModal').style.display='none'" style="position:absolute; top:40px; right:40px; background:none; border:1px solid white; color:white; padding:10px 20px; border-radius:50px; cursor:pointer;">CLOSE GALLERY</button>
+    
+    <div style="text-align: center; margin-bottom: 50px;">
+        <h1 id="viewArtistName" style="font-family: 'Syncopate'; font-size: 50px;"></h1>
+        <p id="viewArtistGenre" style="color:var(--accent); letter-spacing: 5px;"></p>
+    </div>
+
+    <h3 style="width:100%; max-width:1100px; margin-bottom:20px; opacity:0.5;">DISCOGRAPHY</h3>
+    <div class="album-row" id="albumRow">
+        </div>
+</div>
+
+<div id="adminForm" style="display:none; position: fixed; inset:0; background: rgba(0,0,0,0.9); z-index: 10000; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #111; padding: 40px; border-radius: 30px; width: 100%; max-width: 500px; border: 1px solid var(--accent);">
+        <h2 style="margin-bottom: 20px;">Manage Roster</h2>
+        
+        <label style="font-size: 10px; color: var(--accent);">STEP 1: ARTIST PROFILE</label>
+        <input id="artName" placeholder="Artist Stage Name" class="glass-input">
+        <input id="artGenre" placeholder="Genre" class="glass-input">
+        <input id="artImg" placeholder="Profile Image URL" class="glass-input">
+        
+        <label style="font-size: 10px; color: var(--accent); margin-top: 10px; display: block;">STEP 2: ADD AN ALBUM (Optional)</label>
+        <input id="albName" placeholder="Album Title" class="glass-input">
+        <input id="albArt" placeholder="Album Cover URL" class="glass-input">
+
+        <button onclick="saveArtist()" class="glass-input" style="background: var(--accent); color: black; font-weight: 800; cursor: pointer; margin-top: 20px;">UPDATE ROSTER</button>
+        <button onclick="document.getElementById('adminForm').style.display='none'" style="width:100%; background:none; border:none; color:gray; cursor:pointer; margin-top:10px;">Cancel</button>
+    </div>
+</div>
+
+<button class="admin-fab" id="adminFab" onclick="verifyAdmin()">+ MANAGE ARTISTS</button>
+
+<script>
+    // USE YOUR CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyC7I_pBRrcLV6sCZzWO4_RmBIrZLoWhXfk",
+      authDomain: "axtraplatforms.firebaseapp.com",
+      projectId: "axtraplatforms",
+      storageBucket: "axtraplatforms.firebasestorage.app",
+      messagingSenderId: "764125379196",
+      appId: "1:764125379196:web:5465fa0c1a4a87a6fda7f9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    const MASTER_KEY = "cxaxtraartists"; 
+
+    auth.onAuthStateChanged(user => {
+        if(user && user.email === 'satyam.nigam2011@gmail.com') { 
+            document.getElementById('adminFab').style.display = 'block';
+        }
+        loadArtists();
+    });
+
+    function verifyAdmin() {
+        if(prompt("Admin Key:") === MASTER_KEY) document.getElementById('adminForm').style.display = 'flex';
+    }
+
+    async function saveArtist() {
+        const name = document.getElementById('artName').value;
+        const genre = document.getElementById('artGenre').value;
+        const img = document.getElementById('artImg').value;
+        const albT = document.getElementById('albName').value;
+        const albA = document.getElementById('albArt').value;
+
+        if(!name) return alert("Artist Name required!");
+
+        // 1. Check if artist exists
+        const artistRef = db.collection("artists").doc(name);
+        const doc = await artistRef.get();
+
+        if(!doc.exists) {
+            await artistRef.set({ name, genre, img });
+        }
+
+        // 2. Add Album to sub-collection
+        if(albT) {
+            await artistRef.collection("albums").add({ title: albT, cover: albA });
+        }
+
+        location.reload();
+    }
+
+    function loadArtists() {
+        db.collection("artists").onSnapshot(snap => {
+            const grid = document.getElementById('artistGrid');
+            grid.innerHTML = '';
+            snap.forEach(doc => {
+                const a = doc.data();
+                const card = document.createElement('div');
+                card.className = 'artist-card';
+                card.onclick = () => openDiscography(a.name, a.genre);
+                card.innerHTML = `
+                    <div class="artist-img" style="background-image:url('${a.img}')"></div>
+                    <div class="artist-info">
+                        <h2>${a.name}</h2>
+                        <p style="color:var(--accent); font-size:12px;">${a.genre}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        });
+    }
+
+    async function openDiscography(name, genre) {
+        document.getElementById('viewArtistName').innerText = name;
+        document.getElementById('viewArtistGenre').innerText = genre.toUpperCase();
+        const row = document.getElementById('albumRow');
+        row.innerHTML = '<p style="opacity:0.3">Loading records...</p>';
+        document.getElementById('albumModal').style.display = 'flex';
+
+        const snap = await db.collection("artists").doc(name).collection("albums").get();
+        row.innerHTML = '';
+        snap.forEach(doc => {
+            const alb = doc.data();
+            const item = document.createElement('div');
+            item.className = 'album-item';
+            item.innerHTML = `
+                <div class="album-art" style="background-image:url('${alb.cover}')"></div>
+                <h4 style="font-size:14px;">${alb.title}</h4>
+            `;
+            row.appendChild(item);
+        });
+    }
+</script>
+
+</body>
+</html>

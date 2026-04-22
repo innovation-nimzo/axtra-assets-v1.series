@@ -1,0 +1,697 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axtra Ticket Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --bg: #08111f;
+            --bg-soft: #101d33;
+            --panel: rgba(7, 15, 28, 0.78);
+            --panel-strong: rgba(10, 20, 37, 0.92);
+            --border: rgba(148, 163, 184, 0.18);
+            --text: #e5eefc;
+            --text-dim: #94a3b8;
+            --accent: #3dd9b1;
+            --accent-deep: #1e9d7d;
+            --warn: #f97316;
+            --danger: #fb7185;
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+        }
+
+        .light-mode {
+            --bg: #eef4ff;
+            --bg-soft: #d9e7ff;
+            --panel: rgba(255, 255, 255, 0.88);
+            --panel-strong: rgba(255, 255, 255, 0.98);
+            --border: rgba(15, 23, 42, 0.08);
+            --text: #122033;
+            --text-dim: #5b6b83;
+            --accent: #0f9f80;
+            --accent-deep: #08725c;
+            --warn: #d97706;
+            --danger: #e11d48;
+            --shadow: 0 24px 60px rgba(37, 99, 235, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(61, 217, 177, 0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 32%),
+                linear-gradient(160deg, var(--bg) 0%, var(--bg-soft) 100%);
+            padding: 28px;
+            transition: background 0.35s ease, color 0.35s ease;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 999px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(24px);
+            z-index: 100;
+        }
+
+        .theme-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            padding: 10px 16px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .theme-btn.active {
+            background: var(--accent);
+            color: #04120e;
+        }
+
+        .page {
+            max-width: 1240px;
+            margin: 0 auto;
+            display: grid;
+            gap: 22px;
+        }
+
+        .hero,
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            backdrop-filter: blur(24px);
+            box-shadow: var(--shadow);
+        }
+
+        .hero {
+            padding: 34px;
+            display: grid;
+            grid-template-columns: 1.4fr 0.9fr;
+            gap: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            inset: auto -80px -120px auto;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: rgba(61, 217, 177, 0.12);
+            filter: blur(10px);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(61, 217, 177, 0.12);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        h1 {
+            font-size: clamp(32px, 5vw, 52px);
+            line-height: 1;
+            margin-bottom: 14px;
+        }
+
+        .hero p {
+            color: var(--text-dim);
+            line-height: 1.7;
+            max-width: 58ch;
+        }
+
+        .hero-grid {
+            display: grid;
+            gap: 14px;
+            align-content: start;
+        }
+
+        .hero-card {
+            background: var(--panel-strong);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 18px;
+        }
+
+        .hero-card strong {
+            display: block;
+            font-size: 24px;
+            margin-top: 10px;
+        }
+
+        .hero-card span,
+        .microcopy,
+        .meta-line,
+        .ticket-meta,
+        .empty-state {
+            color: var(--text-dim);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 22px;
+        }
+
+        .panel {
+            padding: 28px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .panel-header p {
+            color: var(--text-dim);
+            margin-top: 6px;
+            line-height: 1.6;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .field.full { grid-column: 1 / -1; }
+
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            font: inherit;
+            padding: 15px 16px;
+        }
+
+        .field textarea {
+            min-height: 160px;
+            resize: vertical;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            outline: none;
+            border-color: rgba(61, 217, 177, 0.65);
+            box-shadow: 0 0 0 3px rgba(61, 217, 177, 0.14);
+        }
+
+        .ticket-preview {
+            padding: 18px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(61, 217, 177, 0.16), rgba(59, 130, 246, 0.08));
+            border: 1px solid rgba(61, 217, 177, 0.18);
+            margin-bottom: 18px;
+        }
+
+        .ticket-code {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(24px, 4vw, 34px);
+            letter-spacing: 0.04em;
+            margin: 8px 0 10px;
+            word-break: break-word;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 22px;
+        }
+
+        button,
+        .link-btn {
+            border: none;
+            border-radius: 16px;
+            padding: 14px 18px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        button:hover,
+        .link-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .primary-btn {
+            background: var(--accent);
+            color: #03110d;
+            box-shadow: 0 16px 30px rgba(61, 217, 177, 0.22);
+        }
+
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .ticket-list {
+            display: grid;
+            gap: 14px;
+            max-height: 760px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .ticket-card {
+            padding: 18px;
+            border-radius: 22px;
+            border: 1px solid var(--border);
+            background: var(--panel-strong);
+        }
+
+        .ticket-topline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .status-ongoing {
+            background: rgba(59, 130, 246, 0.15);
+            color: #7dd3fc;
+        }
+
+        .status-solving {
+            background: rgba(249, 115, 22, 0.16);
+            color: #fdba74;
+        }
+
+        .status-closed {
+            background: rgba(244, 63, 94, 0.16);
+            color: #fda4af;
+        }
+
+        .success-panel {
+            margin-top: 20px;
+            padding: 22px;
+            border-radius: 22px;
+            background: rgba(61, 217, 177, 0.12);
+            border: 1px solid rgba(61, 217, 177, 0.24);
+            display: none;
+        }
+
+        .empty-state {
+            padding: 28px;
+            border: 1px dashed var(--border);
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .admin-banner {
+            display: none;
+            margin-top: 18px;
+            padding: 18px;
+            border-radius: 20px;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.22);
+        }
+
+        .footer-link {
+            margin-top: 22px;
+            color: var(--text);
+            opacity: 0.82;
+        }
+
+        @media (max-width: 980px) {
+            .hero,
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 18px; }
+            .hero,
+            .panel { padding: 22px; border-radius: 24px; }
+            .theme-toggle {
+                position: static;
+                width: fit-content;
+                margin-left: auto;
+                margin-bottom: 16px;
+            }
+            .form-grid { grid-template-columns: 1fr; }
+            .field.full { grid-column: auto; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="theme-toggle">
+        <button class="theme-btn active" onclick="setTheme('dark')">Dark</button>
+        <button class="theme-btn" onclick="setTheme('light')">Light</button>
+    </div>
+
+    <main class="page">
+        <section class="hero">
+            <div>
+                <div class="eyebrow">Axtra Support</div>
+                <h1>Ticket generation now feels like part of the product.</h1>
+                <p>Create support tickets with the new <strong>AXTICKET</strong> format, keep the subject clean, and track the latest status updates that headquarters posts for you.</p>
+            </div>
+            <div class="hero-grid">
+                <div class="hero-card">
+                    <span>Ticket format</span>
+                    <strong id="heroTicketFormat">AXTICKET-20260422ABCD</strong>
+                    <div class="microcopy">Date plus random letter series. Every new ticket follows this structure.</div>
+                </div>
+                <div class="hero-card">
+                    <span>Status flow</span>
+                    <strong>Ongoing -> Solving -> Closed</strong>
+                    <div class="microcopy">Headquarters updates the status and close date from the HQ dashboard.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Generate A Ticket</h2>
+                        <p>Fill in the issue, launch the ticket, and we will keep the tracking code visible for later status checks.</p>
+                    </div>
+                </div>
+
+                <div class="ticket-preview">
+                    <div class="microcopy">Your next ticket code preview</div>
+                    <div class="ticket-code" id="ticketPreview">AXTICKET-20260422ABCD</div>
+                    <div class="microcopy">Final code is generated when you submit the form.</div>
+                </div>
+
+                <form id="ticketForm">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label for="category">Issue Category</label>
+                            <select id="category" required>
+                                <option value="">Select a category</option>
+                                <option value="music-not-playing">Music Not Playing</option>
+                                <option value="playlist-not-visible">Playlist Not Visible</option>
+                                <option value="account-issue">Account Issue</option>
+                                <option value="login-problem">Login Problem</option>
+                                <option value="app-crash">App Crash</option>
+                                <option value="feature-request">Feature Request</option>
+                                <option value="qr-problem">QR Code Problem</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="subject">Subject</label>
+                            <input type="text" id="subject" placeholder="Short issue summary" required>
+                        </div>
+                        <div class="field full">
+                            <label for="description">Detailed Description</label>
+                            <textarea id="description" placeholder="Tell us what happened, what you expected, and any steps that reproduce the issue." required></textarea>
+                        </div>
+                    </div>
+                    <div class="button-row">
+                        <button class="primary-btn" type="submit">Launch Ticket</button>
+                        <a class="link-btn secondary-btn" href="index.html">Back To Axtra Music</a>
+                    </div>
+                </form>
+
+                <div id="successMessage" class="success-panel">
+                    <h3 style="margin-bottom:10px;">Ticket launched successfully</h3>
+                    <p class="microcopy">Your new code is ready and headquarters can now manage its status.</p>
+                    <div class="ticket-code" id="ticketNumber">AXTICKET-20260422ABCD</div>
+                    <div class="microcopy">Use this exact code with the AI command format: <strong>!ticketcode_status</strong></div>
+                </div>
+
+                <div id="adminBanner" class="admin-banner">
+                    <h3 style="margin-bottom:8px;">Admin account detected</h3>
+                    <p class="microcopy" style="margin-bottom:14px;">Support status is now managed in headquarters so everything stays in one place.</p>
+                    <a class="link-btn primary-btn" href="headquarters.html">Open Headquarters</a>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>My Ticket Timeline</h2>
+                        <p>Recent tickets tied to your signed-in account, with launch and close dates.</p>
+                    </div>
+                </div>
+                <div id="ticketList" class="ticket-list">
+                    <div class="empty-state">Sign in through the main app to create and view your support tickets here.</div>
+                </div>
+                <a class="footer-link" href="index.html">Open Axtra Music main app</a>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7I_pBRrcLV6sCZzWO4_RmBIrZLoWhXfk",
+            authDomain: "axtraplatforms.firebaseapp.com",
+            projectId: "axtraplatforms",
+            storageBucket: "axtraplatforms.firebasestorage.app",
+            messagingSenderId: "764125379196",
+            appId: "1:764125379196:web:5465fa0c1a4a87a6fda7f9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const ADMIN_EMAIL = 'satyam.nigam2011@gmail.com';
+
+        document.getElementById('ticketForm').addEventListener('submit', submitTicket);
+
+        function generateTicketNumber(date = new Date()) {
+            const dateStamp = [
+                date.getFullYear(),
+                String(date.getMonth() + 1).padStart(2, '0'),
+                String(date.getDate()).padStart(2, '0')
+            ].join('');
+            const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let letters = '';
+            for (let i = 0; i < 4; i += 1) {
+                letters += alphabet[Math.floor(Math.random() * alphabet.length)];
+            }
+            return `AXTICKET-${dateStamp}${letters}`;
+        }
+
+        function setTicketPreview() {
+            const preview = generateTicketNumber();
+            document.getElementById('ticketPreview').textContent = preview;
+            document.getElementById('heroTicketFormat').textContent = preview;
+        }
+
+        function formatMoment(value) {
+            if (!value) return 'Not available';
+            const date = value.toDate ? value.toDate() : new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Not available';
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        }
+
+        function getStatusClass(status) {
+            if (status === 'closed') return 'status-closed';
+            if (status === 'solving') return 'status-solving';
+            return 'status-ongoing';
+        }
+
+        function getStatusLabel(status) {
+            if (!status) return 'Ongoing';
+            return status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        async function submitTicket(event) {
+            event.preventDefault();
+
+            if (!auth.currentUser) {
+                alert('Please login first from the main app.');
+                return;
+            }
+
+            const category = document.getElementById('category').value.trim();
+            const subject = document.getElementById('subject').value.trim();
+            const description = document.getElementById('description').value.trim();
+
+            if (!category || !subject || !description) {
+                alert('Please fill all fields.');
+                return;
+            }
+
+            try {
+                const ticketNumber = generateTicketNumber();
+                const launchedAt = firebase.firestore.FieldValue.serverTimestamp();
+
+                await db.collection('tickets').add({
+                    ticketNumber,
+                    ticketLookup: ticketNumber.toLowerCase(),
+                    category,
+                    subject,
+                    message: description,
+                    description,
+                    userId: auth.currentUser.uid,
+                    userEmail: auth.currentUser.email,
+                    userName: auth.currentUser.displayName || auth.currentUser.email,
+                    status: 'ongoing',
+                    createdAt: launchedAt,
+                    launchedAt,
+                    closedAt: null,
+                    messages: [{
+                        text: description,
+                        from: 'user',
+                        timestamp: new Date().toISOString()
+                    }]
+                });
+
+                document.getElementById('ticketNumber').textContent = ticketNumber;
+                document.getElementById('successMessage').style.display = 'block';
+                document.getElementById('ticketForm').reset();
+                setTicketPreview();
+                await loadMyTickets();
+            } catch (error) {
+                console.error('Error creating ticket:', error);
+                alert('Error creating ticket. Please try again.');
+            }
+        }
+
+        async function loadMyTickets() {
+            const list = document.getElementById('ticketList');
+
+            if (!auth.currentUser) {
+                list.innerHTML = '<div class="empty-state">Sign in through the main app to create and view your support tickets here.</div>';
+                return;
+            }
+
+            try {
+                const snapshot = await db.collection('tickets')
+                    .where('userId', '==', auth.currentUser.uid)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                if (snapshot.empty) {
+                    list.innerHTML = '<div class="empty-state">No tickets yet. Your next ticket will appear here with the live HQ status.</div>';
+                    return;
+                }
+
+                list.innerHTML = snapshot.docs.map((doc) => {
+                    const ticket = doc.data();
+                    const launched = formatMoment(ticket.launchedAt || ticket.createdAt);
+                    const closed = ticket.closedAt ? formatMoment(ticket.closedAt) : 'Still open';
+                    return `
+                        <article class="ticket-card">
+                            <div class="ticket-topline">
+                                <strong>${escapeHtml(ticket.ticketNumber || 'AXTICKET')}</strong>
+                                <span class="status-pill ${getStatusClass(ticket.status)}">${escapeHtml(getStatusLabel(ticket.status))}</span>
+                            </div>
+                            <h3 style="margin-bottom:8px;">${escapeHtml(ticket.subject || 'Untitled issue')}</h3>
+                            <p class="ticket-meta" style="margin-bottom:12px; line-height:1.6;">${escapeHtml(ticket.description || ticket.message || '')}</p>
+                            <div class="meta-line">Category: ${escapeHtml(ticket.category || 'general')}</div>
+                            <div class="meta-line">Launched: ${escapeHtml(launched)}</div>
+                            <div class="meta-line">Closed: ${escapeHtml(closed)}</div>
+                        </article>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading tickets:', error);
+                list.innerHTML = '<div class="empty-state">Unable to load tickets right now.</div>';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function setTheme(theme) {
+            document.body.className = `${theme}-mode`;
+            localStorage.setItem('ticketTheme', theme);
+            updateThemeButtons();
+        }
+
+        function updateThemeButtons() {
+            const currentTheme = document.body.className.replace('-mode', '');
+            document.querySelectorAll('.theme-btn').forEach((btn) => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`button[onclick="setTheme('${currentTheme}')"]`);
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            const adminBanner = document.getElementById('adminBanner');
+            if (user && user.email === ADMIN_EMAIL) {
+                adminBanner.style.display = 'block';
+            } else {
+                adminBanner.style.display = 'none';
+            }
+            await loadMyTickets();
+        });
+
+        const savedTheme = localStorage.getItem('ticketTheme') || 'dark';
+        document.body.className = `${savedTheme}-mode`;
+        updateThemeButtons();
+        setTicketPreview();
+    </script>
+</body>
+</html>
